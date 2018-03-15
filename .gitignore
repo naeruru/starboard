@@ -1,0 +1,4 @@
+*.json
+*.autosave
+*.bak
+node_modules/

@@ -1,0 +1,14 @@
+"token": "bot token for authentication",
+"serverID": "server/guild ID that bot will reside in. for example: 693277318496920994",
+"channelID": "channel ID that bot posts in. for example: 461248569698208129",
+"reactionEmoji": "emoji name that bot listens for. for example: moon2SMUG",
+"threshold": threshold for how many reactions it takes to post to board. example: 15
+
+everything below here is an example of what you would post in the settings.json file:
+{
+  "token": "bot_token",
+  "serverID": "693277318496920420",
+  "channelID": "461248569698208129",
+  "reactionEmoji": "😄",
+  "threshold": 15
+}
