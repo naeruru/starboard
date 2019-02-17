@@ -20,7 +20,7 @@ let smugboardID = "";
 try {
   settings = require("./settings.json");
 } catch (e) {
-  console.log("a settings.json file has not been generated." + e.stack);
+  console.log(`a settings.json file has not been generated. ${e.stack}`);
   process.exit();
 }
 
@@ -41,11 +41,12 @@ client.on('messageReactionAdd', (reaction, user) => {
   const msg = reaction.message;
   const msgID = msg.id;
   const msgChannelID = msg.channel.id;
+  const msgLink = `https://discordapp.com/channels/${guildID}/${msgChannelID}/${msgID}`;
   const channel = client.guilds.get(guildID).channels.get(smugboardID);
   const channelID = channel.id;
   let eURL;
 
-  console.log("message " + settings.reactionEmoji + "'d! (" + msgID + ")");
+  console.log(`message ${settings.reactionEmoji}'d! (${msgID})`);
 
   // if message doesnt exist yet in memory, create it
   if (!messagePosted.hasOwnProperty(msgID)) {
@@ -61,20 +62,23 @@ client.on('messageReactionAdd', (reaction, user) => {
     // if message is already posted
     if (messagePosted[msgID].hasOwnProperty("psm")) {
       let editableMessageID = messagePosted[msgID].psm;
-      console.log("updating count of message with ID " + editableMessageID + ". reaction count: " + reaction.count);
+      console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`);
       channel.fetchMessage(editableMessageID).then(message => {
-        message.edit(tt + '  **' + reaction.count + '** ' + '<#' + msgChannelID + '> (' + msgID + ')');
+        message.edit(`${tt}  **${reaction.count}** <#${msgChannelID}> (${msgID})`);
       });
     } else {
       // if message has already been created
       if (messagePosted[msgID].posted) return;
 
-      console.log("posting message with content ID " + msgID + ". reaction count: " + reaction.count);
+      console.log(`posting message with content ID ${msgID}. reaction count: ${reaction.count}`);
       // add message to ongoing object in memory
       messagePosted[msgID].posted = true;
       // header of star post =>
-      channel.sendMessage(tt + '  ' + reaction.count + ' ' + '<#' + msgChannelID + '> (' + msgID + ')').then(message => {
+      channel.send(`${tt}  ${reaction.count} <#${msgChannelID}> (${msgID})`).then(message => {
         messagePosted[msgID].psm = message.id;
+
+        // create content message
+        const contentMsg = `${msg.content}\n\n→ [original message](${msgLink})`;
 
         const embeds = msg.embeds;
         const attachments = msg.attachments;
@@ -89,8 +93,8 @@ client.on('messageReactionAdd', (reaction, user) => {
             eURL = embeds[0].url;
           }
           console.log(eURL);
-          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(msg.content).setImage(eURL).setTimestamp(new Date());
-          channel.sendEmbed(embed);
+          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(contentMsg).setImage(eURL).setTimestamp(new Date());
+          channel.send({embed});
 
           // look for image attachments
         } else if (attachments.array().length > 0) {
@@ -98,17 +102,17 @@ client.on('messageReactionAdd', (reaction, user) => {
 
           eURL = attARR[0].url;
 
-          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(msg.content).setImage(eURL).setTimestamp(new Date());
-          channel.sendEmbed(embed);
+          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(contentMsg).setImage(eURL).setTimestamp(new Date());
+          channel.send({embed});
 
           // no attachments or embeds
         } else {
-          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(msg.content).setTimestamp(new Date());
-          channel.sendEmbed(embed);
+          const embed = new Discord.RichEmbed().setAuthor(msg.author.username, msg.author.avatarURL).setColor(0x00AE86).setDescription(contentMsg).setTimestamp(new Date());
+          channel.send({embed});
         }
 
         channel.fetchMessage(message.id).then(message => {
-          message.edit(tt + '  **' + messagePosted[msgID].latestCount + '** ' + '<#' + msgChannelID + '> (' + msgID + ')');
+          message.edit(`${tt}  **${messagePosted[msgID].latestCount}** <#${msgChannelID}> (${msgID})`);
         });
       });
     }
