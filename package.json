@@ -9,6 +9,8 @@
   "author": "Rushnett and Keiaxx",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "^11.3.2"
+    "discord.js": "github:discordjs/discord.js#master",
+    "node-fetch": "^2.3.0",
+    "setimmediate": "^1.0.5"
   }
 }
