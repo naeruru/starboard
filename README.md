@@ -1,7 +1,9 @@
 # Starboard
-Starboard discordjs bot originally created (and still running) for moonmoon_ow discord server. This implementation is a barebones starboard that can work on one discord server with basic features. It certainly isn't the best way to make a starboard but it works well as is.
+Starboard (also known as the smugboard™) is a Discord.js bot originally created (and still running) for moonmoon_ow discord server. It allows users to react to messages on a given server, and pin messages that reach a threshold to a special channel. This implementation is a barebones starboard that can work on one discord server with minimal setup. No databases are required.
 
 ## Getting Started
+### Requirements
+NodeJS >=10.0.0
 ### Setup
 After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file. The following is an example of how the file needs to look:
 ```
@@ -10,7 +12,10 @@ After cloning the repository, the only setup that needs to be done involves crea
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
   "reactionEmoji": "😄",
-  "threshold": 15
+  "threshold": 15,
+  "hexcolor": "00AE86",
+  "dateCutoff": 3,
+  "fetchLimit": 100
 }
 ```
 **token:** the discord bot token you get from your discord [developer portal](https://discordapp.com/developers/applications/).
@@ -23,10 +28,14 @@ After cloning the repository, the only setup that needs to be done involves crea
 
 **threshhold:** the amount of reactions it takes for a message to be posted to the starboard.
 
+**hexcolor:** the color of the embed in hex.
+
+**dateCutoff:** how old a message can be, in days, and still be tracked by the bot. if you don't want really old messages getting posted, then keep this number low.
+
+**fetchLimit:** how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to raise this value if you have a high volume server that gets a lot of things posted. Anything that isn't tracked has the possibility of getting double posted.
+
 ### Running the Project
-Assuming you have node installed, use `npm install` to download dependencies. Finally, you can run the bot from `starboard.js`. I recommend using pm2 for continuous uptime.
-## Caveats
-The bot will only listen to messages created after the script runs and will ignore any previous messages.
+Use `npm install` to download dependencies. Finally, you can run the bot from `starboard.js`. I recommend using pm2 for continuous uptime.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
