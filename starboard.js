@@ -128,7 +128,6 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
   const msgChannel = client.guilds.get(guildID).channels.get(msgChannelID);
   const msgLink = `https://discordapp.com/channels/${guildID}/${msgChannelID}/${msgID}`;
   const channel = client.guilds.get(guildID).channels.get(smugboardID);
-  const channelID = channel.id;
 
 
 
