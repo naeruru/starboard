@@ -9,7 +9,7 @@
   "author": "Rushnett and Keiaxx",
   "license": "ISC",
   "dependencies": {
-    "discord.js": "github:discordjs/discord.js#master",
+    "discord.js": "^12.2.0",
     "node-fetch": "^2.3.0",
     "setimmediate": "^1.0.5"
   }

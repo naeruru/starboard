@@ -34,7 +34,7 @@ function login () {
 }
 
 async function loadIntoMemory (client, guildID, channelID, limit) {
-  const channel = client.guilds.get(guildID).channels.get(channelID)
+  const channel = client.guilds.cache.get(guildID).channels.cache.get(channelID)
   console.log(`Loading ${limit} messages...`)
 
   let messagesLeft = 0
@@ -119,9 +119,9 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
   const msg = reaction_orig.message
   const msgID = msg.id
   const msgChannelID = msg.channel.id
-  const msgChannel = client.guilds.get(guildID).channels.get(msgChannelID)
+  const msgChannel = client.guilds.cache.get(guildID).channels.cache.get(msgChannelID)
   const msgLink = `https://discordapp.com/channels/${guildID}/${msgChannelID}/${msgID}`
-  const channel = client.guilds.get(guildID).channels.get(smugboardID)
+  const channel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
   // if message doesnt exist yet in memory, create it
   if (!messagePosted.hasOwnProperty(msgID)) {
@@ -149,7 +149,7 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
 
     // We need to do this because the reaction count seems to be 1 if an old cached
     // message is starred. This is to get the 'actual' count
-    msg.reactions.forEach((reaction) => {
+    msg.reactions.cache.forEach((reaction) => {
       if (reaction.emoji.name == settings.reactionEmoji) {
         console.log(`message ${settings.reactionEmoji}'d! (${msgID}) in #${msgChannel.name} total: ${reaction.count}`)
         // did message reach threshold
