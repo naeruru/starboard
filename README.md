@@ -1,17 +1,17 @@
 # Starboard
-Starboard (also known as the smugboard™) is a Discord.js bot originally created (and still running) for moonmoon_ow discord server. It allows users to react to messages on a given server, and pin messages that reach a threshold to a special channel. This implementation is a barebones starboard that can work on one discord server with minimal setup. No databases are required.
+Starboard (also known as the smugboard™) is a Discordjs bot originally created (and still running) for moonmoon's discord server. It allows users to react to messages on a given server, and pin messages that reach a threshold to a special channel. This implementation is a barebones starboard that can work on one discord server with minimal setup. No databases are required.
 
 ## Getting Started
 ### Requirements
 NodeJS >=10.0.0
 ### Setup
-After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file. The following is an example of how the file needs to look:
+After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file in the config folder. The following is an example of how the file needs to look:
 ```
 {
   "token": "bot_token",
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
-  "reactionEmoji": "😄",
+  "reactionEmoji": "⭐",
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
@@ -32,10 +32,10 @@ After cloning the repository, the only setup that needs to be done involves crea
 
 **dateCutoff:** how old a message can be, in days, and still be tracked by the bot. if you don't want really old messages getting posted, then keep this number low.
 
-**fetchLimit:** how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to raise this value if you have a high volume server that gets a lot of things posted. Anything that isn't tracked has the possibility of getting double posted.
+**fetchLimit:** how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to change this with respect to `dateCutoff` and how big your server is. Anything that isn't tracked has the possibility of getting double posted.
 
 ### Running the Project
-Use `npm install` to download dependencies. Finally, you can run the bot from `starboard.js`. I recommend using pm2 for continuous uptime.
+Use `npm install` to download dependencies. Finally, you can run the bot with `npm start`. I recommend using pm2 for continuous uptime.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
