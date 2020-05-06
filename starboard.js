@@ -16,6 +16,7 @@ let settings
 let guildID = ''
 let smugboardID = ''
 let messagePosted = {}
+let loading = true
 
 try {
   settings = require('./settings.json')
@@ -100,6 +101,7 @@ async function loadIntoMemory (client, guildID, channelID, limit) {
   console.log(`Loaded ${Object.keys(postsMap).length} legacy posts, and ${Object.keys(newPostsMap).length} new posts in ${settings.reactionEmoji} channel`)
 
   console.log('Loading complete')
+  loading = false
 }
 
 client.on('ready', () => {
@@ -111,6 +113,7 @@ client.on('ready', () => {
 })
 
 client.on('messageReactionAdd', (reaction_orig, user) => {
+  if (loading) return
   // if channel is posting channel
   if (reaction_orig.message.channel.id == smugboardID) return
   // if reaction is not desired emoji
