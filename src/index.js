@@ -25,6 +25,7 @@ try {
   process.exit()
 }
 
+// login to discord
 function login () {
   if (settings.token) {
     console.log('Logging in with token...')
@@ -34,8 +35,10 @@ function login () {
   }
 }
 
-async function loadIntoMemory (client, guildID, channelID, limit) {
-  const channel = client.guilds.cache.get(guildID).channels.cache.get(channelID)
+// load old messages into memory
+async function loadIntoMemory () {
+  const channel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+  let limit = settings.fetchLimit
   console.log(`Loading ${limit} messages...`)
 
   let messagesLeft = 0
@@ -104,42 +107,13 @@ async function loadIntoMemory (client, guildID, channelID, limit) {
   loading = false
 }
 
-client.on('ready', () => {
-  console.log(`Logged in as ${client.user.username}!`)
-  guildID = settings.serverID
-  smugboardID = settings.channelID
-  // fetch existing posts
-  loadIntoMemory(client, guildID, smugboardID, settings.fetchLimit)
-})
-
-client.on('messageReactionAdd', (reaction_orig, user) => {
-  if (loading) return
-  // if channel is posting channel
-  if (reaction_orig.message.channel.id == smugboardID) return
-  // if reaction is not desired emoji
-  if (reaction_orig.emoji.name !== settings.reactionEmoji) return
+// manage the message board on reaction add/remove
+function manageBoard (reaction_orig) {
 
   const msg = reaction_orig.message
-  const msgID = msg.id
-  const msgChannelID = msg.channel.id
-  const msgChannel = client.guilds.cache.get(guildID).channels.cache.get(msgChannelID)
-  const msgLink = `https://discordapp.com/channels/${guildID}/${msgChannelID}/${msgID}`
-  const channel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
-
-  // if message doesnt exist yet in memory, create it
-  if (!messagePosted.hasOwnProperty(msgID)) {
-    // p: boolean: has been posted to channel,
-    // lc: int: number of stars
-    messagePosted[msgID] = {
-      p: false,
-      lc: 0
-    }
-  } else {
-    if (messagePosted[msgID].legacy) {
-      console.log(`Legacy message ${settings.reactionEmoji}'d, ignoring`)
-      return
-    }
-  }
+  const msgChannel = client.guilds.cache.get(guildID).channels.cache.get(msg.channel.id)
+  const msgLink = `https://discordapp.com/channels/${guildID}/${msg.channel.id}/${msg.id}`
+  const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
   msgChannel.messages.fetch(msg.id).then((msg) => {
     // if message is older than set amount
@@ -152,35 +126,37 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
 
     // We need to do this because the reaction count seems to be 1 if an old cached
     // message is starred. This is to get the 'actual' count
+    let found = false
     msg.reactions.cache.forEach((reaction) => {
       if (reaction.emoji.name == settings.reactionEmoji) {
-        console.log(`message ${settings.reactionEmoji}'d! (${msgID}) in #${msgChannel.name} total: ${reaction.count}`)
+        found = true
+        console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
         // did message reach threshold
         if (reaction.count >= settings.threshold) {
-          messagePosted[msgID].lc = reaction.count
+          messagePosted[msg.id].lc = reaction.count
           // if message is already posted
-          if (messagePosted[msgID].hasOwnProperty('psm')) {
-            const editableMessageID = messagePosted[msgID].psm
+          if (messagePosted[msg.id].hasOwnProperty('psm')) {
+            const editableMessageID = messagePosted[msg.id].psm
             console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-            const messageFooter = `${reaction.count} ${tt} (${msgID})`
-            channel.messages.fetch(editableMessageID).then((message) => {
+            const messageFooter = `${reaction.count} ${tt} (${msg.id})`
+            postChannel.messages.fetch(editableMessageID).then((message) => {
               message.embeds[0].setFooter(messageFooter)
               message.edit(message.embeds[0])
             })
           } else {
             // if message has already been created
-            if (messagePosted[msgID].p) return
+            if (messagePosted[msg.id].p) return
 
-            console.log(`posting message with content ID ${msgID}. reaction count: ${reaction.count}`)
+            console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
             // add message to ongoing object in memory
-            messagePosted[msgID].p = true
+            messagePosted[msg.id].p = true
 
             // create content message
-            const contentMsg = `${msg.content}\n\n→ [original message](${msgLink}) in <#${msgChannelID}>`
+            const contentMsg = `${msg.content}\n\n→ [original message](${msgLink}) in <#${msg.channel.id}>`
             const avatarURL = `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`
             const embeds = msg.embeds
             const attachments = msg.attachments
-            const messageFooter = `${reaction.count} ${tt} (${msgID})`
+            const messageFooter = `${reaction.count} ${tt} (${msg.id})`
             let eURL = ''
 
             if (embeds.length > 0) {
@@ -199,16 +175,91 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
               .setImage(eURL)
               .setTimestamp(new Date())
               .setFooter(messageFooter)
-            channel.send({
+            postChannel.send({
               embed
             }).then((starMessage) => {
-              messagePosted[msgID].psm = starMessage.id
+              messagePosted[msg.id].psm = starMessage.id
             })
           }
         }
       }
     })
+
+    // if reactions reach 0
+    if (!found)
+      deletePost(msg)
+
   })
+}
+
+// delete a post
+function deletePost (msg) {
+  const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+  // if posted to channel board before
+  if (messagePosted[msg.id]) {
+    const editableMessageID = messagePosted[msg.id].psm
+    postChannel.messages.fetch(editableMessageID).then((message) => {
+      delete messagePosted[msg.id]
+      message.delete()
+        .then(msg => console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`))
+        .catch(console.error)
+    })
+  }
+}
+
+// ON READY
+client.on('ready', () => {
+  console.log(`Logged in as ${client.user.username}!`)
+  guildID = settings.serverID
+  smugboardID = settings.channelID
+  // fetch existing posts
+  loadIntoMemory()
 })
+
+// ON REACTION ADD
+client.on('messageReactionAdd', (reaction_orig, user) => {
+  if (loading) return
+  // if channel is posting channel
+  if (reaction_orig.message.channel.id == smugboardID) return
+  // if reaction is not desired emoji
+  if (reaction_orig.emoji.name !== settings.reactionEmoji) return
+
+  const msg = reaction_orig.message
+
+  // if message doesnt exist yet in memory, create it
+  if (!messagePosted.hasOwnProperty(msg.id)) {
+    // p: boolean: has been posted to channel,
+    // lc: int: number of stars
+    messagePosted[msg.id] = {
+      p: false,
+      lc: 0
+    }
+  } else {
+    if (messagePosted[msg.id].legacy) {
+      console.log(`Legacy message ${settings.reactionEmoji}'d, ignoring`)
+      return
+    }
+  }
+
+  manageBoard(reaction_orig)
+})
+
+// ON REACTION REMOVE
+client.on('messageReactionRemove', (reaction_orig, user) => {
+  if (loading) return
+  // if channel is posting channel
+  if (reaction_orig.message.channel.id == smugboardID) return
+  // if reaction is not desired emoji
+  if (reaction_orig.emoji.name !== settings.reactionEmoji) return
+
+
+  manageBoard(reaction_orig)
+})
+
+// ON REACTION PURGE
+client.on('messageReactionRemoveAll', (msg) => {
+  deletePost(msg)
+})
+
 
 login()
