@@ -35,76 +35,48 @@ function login () {
   }
 }
 
+
+async function * messagesIterator (channel, messagesLeft) {
+  let before = null
+  let done = false
+  while (messagesLeft > 0) {
+    process.stdout.write(".")
+    const messages = await channel.messages.fetch({ limit: 100, before })
+    if (messages.size > 0) {
+      before = messages.lastKey()
+      messagesLeft = messagesLeft - 100
+      yield messages
+    } else break
+  }
+}
+
+async function * loadMessages (channel, amount) {
+  for await (const messages of messagesIterator(channel, amount)) {
+    for (const message of messages.values()) yield message
+  }
+}
+
 // load old messages into memory
 async function loadIntoMemory () {
   const channel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
-  let limit = settings.fetchLimit
-  console.log(`Loading ${limit} messages...`)
+  let amount = settings.fetchLimit
+  console.log(`Fetching the last ${amount} messages...`)
 
-  let messagesLeft = 0
-  if (limit > 100) {
-    messagesLeft = limit - 100
-    limit = 100
-  }
-
-  console.log(`${messagesLeft} messages left to load`)
-  var messages = await channel.messages.fetch({ limit: limit })
-
-  while (messagesLeft) {
-    if (messagesLeft > 100) {
-      messagesLeft = messagesLeft - 100
-      console.log(`${messagesLeft} messages left to load`)
-      const moreMessages = await channel.messages.fetch({ limit: 100, before: messages.lastKey() })
-      messages = await messages.concat(moreMessages)
-    } else {
-      console.log(`${messagesLeft} messages left to load`)
-      const moreMessages = await channel.messages.fetch({ limit: messagesLeft, before: messages.lastKey() })
-      messages = await messages.concat(moreMessages)
-      messagesLeft = 0
+  // iterate through all messages as they're pulled
+  for await (const message of loadMessages(channel, amount)) {
+    if (message.embeds.length > 0) {
+      if (message.embeds[0].footer) {
+        messagePosted[String(message.embeds[0].footer.text).match(/\((\d{18})\)/)[1]] = {
+          p: true,
+          lc: settings.threshold + 1,
+          legacy: false,
+          psm: message.id
+        }
+      }
     }
   }
-
-  const posts = messages.filter(m => m.content.match(/\((\d{18})\)/))
-  const newPosts = messages.filter(m => {
-    if (m.embeds.length > 0) {
-      if (m.embeds[0].footer) { return String(m.embeds[0].footer.text).match(/\((\d{18})\)/) } else { return false }
-    } else {
-      return false
-    }
-  })
-
-  const postsMap = posts.reduce((mapAccumulator, obj) => {
-    // either one of the following syntax works
-    // mapAccumulator[obj.key] = obj.val;
-    mapAccumulator[String(obj.content.match(/\((\d{18})\)/)[1])] = {
-      p: true,
-      lc: settings.threshold + 1,
-      legacy: true,
-      psm: obj.id
-    }
-
-    return mapAccumulator
-  }, {})
-
-  const newPostsMap = newPosts.reduce((mapAccumulator, obj) => {
-    // either one of the following syntax works
-    // mapAccumulator[obj.key] = obj.val;
-    mapAccumulator[String(obj.embeds[0].footer.text).match(/\((\d{18})\)/)[1]] = {
-      p: true,
-      lc: settings.threshold + 1,
-      legacy: false,
-      psm: obj.id
-    }
-
-    return mapAccumulator
-  }, {})
-
-  messagePosted = { ...postsMap, ...newPostsMap }
-
-  console.log(`Loaded ${Object.keys(postsMap).length} legacy posts, and ${Object.keys(newPostsMap).length} new posts in ${settings.reactionEmoji} channel`)
-
-  console.log('Loading complete')
   loading = false
+  console.log(`\nLoaded ${Object.keys(messagePosted).length} previous posts in ${settings.reactionEmoji} channel!`)
 }
 
 // manage the message board on reaction add/remove
@@ -182,7 +154,6 @@ function manageBoard (reaction_orig) {
         }
       }
     })
-
   })
 }
 
