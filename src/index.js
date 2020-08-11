@@ -124,12 +124,10 @@ function manageBoard (reaction_orig) {
       return
     }
 
-    // We need to do this because the reaction count seems to be 1 if an old cached
+    // we need to do this because the reaction count seems to be 1 if an old cached
     // message is starred. This is to get the 'actual' count
-    let found = false
     msg.reactions.cache.forEach((reaction) => {
       if (reaction.emoji.name == settings.reactionEmoji) {
-        found = true
         console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
         // did message reach threshold
         if (reaction.count >= settings.threshold) {
@@ -185,10 +183,6 @@ function manageBoard (reaction_orig) {
       }
     })
 
-    // if reactions reach 0
-    if (!found)
-      deletePost(msg)
-
   })
 }
 
@@ -196,7 +190,7 @@ function manageBoard (reaction_orig) {
 function deletePost (msg) {
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
   // if posted to channel board before
-  if (messagePosted[msg.id]) {
+  if (messagePosted[msg.id].p) {
     const editableMessageID = messagePosted[msg.id].psm
     postChannel.messages.fetch(editableMessageID).then((message) => {
       delete messagePosted[msg.id]
@@ -245,15 +239,19 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
 })
 
 // ON REACTION REMOVE
-client.on('messageReactionRemove', (reaction_orig, user) => {
+client.on('messageReactionRemove', (reaction, user) => {
   if (loading) return
   // if channel is posting channel
-  if (reaction_orig.message.channel.id == smugboardID) return
+  if (reaction.message.channel.id == smugboardID) return
   // if reaction is not desired emoji
-  if (reaction_orig.emoji.name !== settings.reactionEmoji) return
+  if (reaction.emoji.name !== settings.reactionEmoji) return
 
 
-  manageBoard(reaction_orig)
+  // if reactions reach 0
+  if (reaction.count === 0)
+    return deletePost(reaction.message)
+  else
+    manageBoard(reaction)
 })
 
 // ON REACTION PURGE
