@@ -64,13 +64,16 @@ async function loadIntoMemory () {
 
   // iterate through all messages as they're pulled
   for await (const message of loadMessages(channel, amount)) {
-    if (message.embeds.length > 0) {
-      if (message.embeds[0].footer) {
-        messagePosted[String(message.embeds[0].footer.text).match(/\((\d{18})\)/)[1]] = {
-          p: true,
-          lc: settings.threshold + 1,
-          legacy: false,
-          psm: message.id
+    // verify footer exists and grab original message ID
+    if (message.embeds.length > 0 && message.embeds[0].footer) {
+      const footerID = String(message.embeds[0].footer.text).match(/\((\d{18})\)/)
+      if (footerID) {
+        // save post to memory
+        messagePosted[footerID[1]] = {
+          p: true, // is posted
+          lc: settings.threshold + 1, // reaction amount
+          legacy: false, // is legacy
+          psm: message.id // starboard msg id
         }
       }
     }
