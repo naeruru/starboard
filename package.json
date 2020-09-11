@@ -11,7 +11,7 @@
   "license": "MIT",
   "dependencies": {
     "discord.js": "^12.2.0",
-    "node-fetch": "^2.3.0",
+    "node-fetch": "^2.6.1",
     "setimmediate": "^1.0.5"
   }
 }
