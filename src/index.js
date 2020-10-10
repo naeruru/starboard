@@ -13,20 +13,25 @@ const client = new Discord.Client({
 // emoji that goes in the post title
 const tt = '⭐'
 let settings
+let db
 let guildID = ''
 let smugboardID = ''
 let messagePosted = {}
 let loading = true
 
-try {
-  settings = require('../config/settings.json')
-} catch (e) {
-  console.log(`a settings.json file has not been generated. ${e.stack}`)
-  process.exit()
-}
+function setup () {
+  // load settings.json
+  try {
+    settings = require('../config/settings.json')
+  } catch (e) {
+    console.log(`a settings.json file has not been generated. ${e.stack}`)
+    process.exit()
+  }
 
-// login to discord
-function login () {
+  if (settings.sql)
+    db = require('./database/sequelize')
+
+  // login to discord
   if (settings.token) {
     console.log('Logging in with token...')
     client.login(settings.token)
@@ -115,6 +120,11 @@ function manageBoard (reaction_orig) {
             postChannel.messages.fetch(editableMessageID).then((message) => {
               message.embeds[0].setFooter(messageFooter)
               message.edit(message.embeds[0])
+
+              // if db
+              if (db)
+                db.updatePost(message, msg, reaction.count, message.embeds[0].image)
+
             })
           } else {
             // if message has already been created
@@ -152,6 +162,10 @@ function manageBoard (reaction_orig) {
               embed
             }).then((starMessage) => {
               messagePosted[msg.id].psm = starMessage.id
+
+              // if db
+              if (db)
+                db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
             })
           }
         }
@@ -171,6 +185,9 @@ function deletePost (msg) {
       message.delete()
         .then(msg => console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`))
         .catch(console.error)
+      
+      if (db)
+        db.setDeleted(message.id)
     })
   }
 }
@@ -233,5 +250,11 @@ client.on('messageReactionRemoveAll', (msg) => {
   deletePost(msg)
 })
 
+// if post is deleted (db only)
+client.on('messageDelete', (msg) => {
+  if (db && msg.channel.id === smugboardID)
+    db.setDeleted(msg.id)
+})
 
-login()
+
+setup()
