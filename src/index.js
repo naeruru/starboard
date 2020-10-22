@@ -7,26 +7,31 @@
 // discord init
 const Discord = require('discord.js')
 const client = new Discord.Client({
-  partials: Object.values(Discord.Constants.PartialTypes)
+  partials: ['MESSAGE', 'REACTION']
 })
 
 // emoji that goes in the post title
 const tt = '⭐'
 let settings
+let db
 let guildID = ''
 let smugboardID = ''
 let messagePosted = {}
 let loading = true
 
-try {
-  settings = require('../config/settings.json')
-} catch (e) {
-  console.log(`a settings.json file has not been generated. ${e.stack}`)
-  process.exit()
-}
+function setup () {
+  // load settings.json
+  try {
+    settings = require('../config/settings.json')
+  } catch (e) {
+    console.log(`a settings.json file has not been generated. ${e.stack}`)
+    process.exit()
+  }
 
-// login to discord
-function login () {
+  if (settings.sql)
+    db = require('./database/sequelize')
+
+  // login to discord
   if (settings.token) {
     console.log('Logging in with token...')
     client.login(settings.token)
@@ -69,12 +74,7 @@ async function loadIntoMemory () {
       const footerID = String(message.embeds[0].footer.text).match(/\((\d{18})\)/)
       if (footerID) {
         // save post to memory
-        messagePosted[footerID[1]] = {
-          p: true, // is posted
-          lc: settings.threshold + 1, // reaction amount
-          legacy: false, // is legacy
-          psm: message.id // starboard msg id
-        }
+        messagePosted[footerID[1]] = message.id // starboard msg id
       }
     }
   }
@@ -106,23 +106,24 @@ function manageBoard (reaction_orig) {
         console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
         // did message reach threshold
         if (reaction.count >= settings.threshold) {
-          messagePosted[msg.id].lc = reaction.count
           // if message is already posted
-          if (messagePosted[msg.id].hasOwnProperty('psm')) {
-            const editableMessageID = messagePosted[msg.id].psm
+          if (messagePosted[msg.id]) {
+            const editableMessageID = messagePosted[msg.id]
             console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
             const messageFooter = `${reaction.count} ${tt} (${msg.id})`
             postChannel.messages.fetch(editableMessageID).then((message) => {
               message.embeds[0].setFooter(messageFooter)
               message.edit(message.embeds[0])
+
+              // if db
+              if (db)
+                db.updatePost(message, msg, reaction.count, message.embeds[0].image)
+
             })
           } else {
-            // if message has already been created
-            if (messagePosted[msg.id].p) return
-
             console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
             // add message to ongoing object in memory
-            messagePosted[msg.id].p = true
+            messagePosted[msg.id] = true
 
             // create content message
             const contentMsg = `${msg.content}\n\n→ [original message](${msgLink}) in <#${msg.channel.id}>`
@@ -138,7 +139,6 @@ function manageBoard (reaction_orig) {
             } else if (attachments.array().length > 0) {
               const attARR = attachments.array()
               eURL = attARR[0].url
-              // no attachments or embeds
             }
 
             const embed = new Discord.MessageEmbed()
@@ -151,7 +151,11 @@ function manageBoard (reaction_orig) {
             postChannel.send({
               embed
             }).then((starMessage) => {
-              messagePosted[msg.id].psm = starMessage.id
+              messagePosted[msg.id] = starMessage.id
+
+              // if db
+              if (db)
+                db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
             })
           }
         }
@@ -164,13 +168,16 @@ function manageBoard (reaction_orig) {
 function deletePost (msg) {
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
   // if posted to channel board before
-  if (messagePosted[msg.id].p) {
-    const editableMessageID = messagePosted[msg.id].psm
+  if (messagePosted[msg.id]) {
+    const editableMessageID = messagePosted[msg.id]
     postChannel.messages.fetch(editableMessageID).then((message) => {
       delete messagePosted[msg.id]
       message.delete()
         .then(msg => console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`))
         .catch(console.error)
+      
+      if (db)
+        db.setDeleted(message.id)
     })
   }
 }
@@ -193,21 +200,6 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
   if (reaction_orig.emoji.name !== settings.reactionEmoji) return
 
   const msg = reaction_orig.message
-
-  // if message doesnt exist yet in memory, create it
-  if (!messagePosted.hasOwnProperty(msg.id)) {
-    // p: boolean: has been posted to channel,
-    // lc: int: number of stars
-    messagePosted[msg.id] = {
-      p: false,
-      lc: 0
-    }
-  } else {
-    if (messagePosted[msg.id].legacy) {
-      console.log(`Legacy message ${settings.reactionEmoji}'d, ignoring`)
-      return
-    }
-  }
 
   manageBoard(reaction_orig)
 })
@@ -233,5 +225,11 @@ client.on('messageReactionRemoveAll', (msg) => {
   deletePost(msg)
 })
 
+// if post is deleted (db only)
+client.on('messageDelete', (msg) => {
+  if (db && msg.channel.id === smugboardID)
+    db.setDeleted(msg.id)
+})
 
-login()
+
+setup()

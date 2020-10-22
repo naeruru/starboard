@@ -3,7 +3,7 @@ Starboard (also known as the smugboard™) is a Discordjs bot originally created
 
 ## Getting Started
 ### Requirements
-NodeJS >=10.0.0
+NodeJS 12.0.0+
 ### Setup
 After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file in the config folder. The following is an example of how the file needs to look:
 ```
@@ -36,6 +36,27 @@ After cloning the repository, the only setup that needs to be done involves crea
 
 ### Running the Project
 Use `npm install` to download dependencies. Finally, you can run the bot with `npm start`. I recommend using pm2 for continuous uptime.
+
+## Database Support
+Using a database is completely optional, but if you wish to use one, it is partially supported. All you need to do is add the property `sql` to your config.json like so:
+```
+{
+  ...
+  "sql": {
+    "dialect": "mariadb",
+    "db": "db_name",
+    "hostname": "127.0.0.1",
+    "port": "3306",
+    "username": "username",
+    "password": "password"
+  }
+  ...
+}
+```
+### Notes
+- DB support currently only sends data back to the DB. It will still load previous posts from the actual discord channel, up to the amount specified in the config.
+
+- All code is tested with the dialect mariadb. Additional dialects must be installed. For example, if you want to use `"dialect": "mysql"`, you must install it with `npm install mysql2`.
 
 ## License
 This project is licensed under the MIT License - see the [LICENSE.txt](LICENSE.txt) file for details.
