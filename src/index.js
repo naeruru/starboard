@@ -11,7 +11,7 @@ const client = new Discord.Client({
 })
 
 // emoji that goes in the post title
-const tt = '⭐'
+let tt = '⭐'
 let settings
 let db
 let guildID = ''
@@ -30,6 +30,9 @@ function setup () {
 
   if (settings.sql)
     db = require('./database/sequelize')
+
+  if (settings.embedEmoji)
+    tt = settings.embedEmoji
 
   // login to discord
   if (settings.token) {
