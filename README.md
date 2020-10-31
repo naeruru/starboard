@@ -12,6 +12,7 @@ After cloning the repository, the only setup that needs to be done involves crea
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
   "reactionEmoji": "⭐",
+  "embedEmoji": "⭐",
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
@@ -25,6 +26,8 @@ After cloning the repository, the only setup that needs to be done involves crea
 **channelID:** the ID of the channel you want the starboard bot to post to. You can right click the channel name and obtain the channel ID after enabling developer mode.
 
 **reactionEmoji:** the emoji you want the bot to listen to. For default emojis, use the literal emoji. To easily obtain this, you can put a `\` infront of any emoji name like `\:star:` in discord (which would create ⭐). For custom emojis, simply put the exact name like `moon2SMUG`.
+
+**embedEmoji:** the emoji (Or any other piece of text) displayed at the bottom of the embeds in the starboard channel.
 
 **threshhold:** the amount of reactions it takes for a message to be posted to the starboard.
 

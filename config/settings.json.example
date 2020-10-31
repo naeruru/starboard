@@ -3,6 +3,7 @@
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
   "reactionEmoji": "⭐",
+  "embedEmoji": "⭐",
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
