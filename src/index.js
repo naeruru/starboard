@@ -10,8 +10,6 @@ const client = new Discord.Client({
   partials: ['MESSAGE', 'REACTION']
 })
 
-// emoji that goes in the post title
-let tt = '⭐'
 let settings
 let db
 let guildID = ''
@@ -31,8 +29,8 @@ function setup () {
   if (settings.sql)
     db = require('./database/sequelize')
 
-  if (settings.embedEmoji)
-    tt = settings.embedEmoji
+  if (!settings.embedEmoji)
+    settings.embedEmoji = '⭐'
 
   // login to discord
   if (settings.token) {
@@ -113,7 +111,7 @@ function manageBoard (reaction_orig) {
           if (messagePosted[msg.id]) {
             const editableMessageID = messagePosted[msg.id]
             console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-            const messageFooter = `${reaction.count} ${tt} (${msg.id})`
+            const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
             postChannel.messages.fetch(editableMessageID).then((message) => {
               message.embeds[0].setFooter(messageFooter)
               message.edit(message.embeds[0])
@@ -133,7 +131,7 @@ function manageBoard (reaction_orig) {
             const avatarURL = `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`
             const embeds = msg.embeds
             const attachments = msg.attachments
-            const messageFooter = `${reaction.count} ${tt} (${msg.id})`
+            const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
             let eURL = ''
 
             if (embeds.length > 0) {
