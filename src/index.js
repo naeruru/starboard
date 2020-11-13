@@ -7,7 +7,7 @@
 // discord init
 const Discord = require('discord.js')
 const client = new Discord.Client({
-  partials: ['MESSAGE', 'REACTION']
+  partials: Object.values(Discord.Constants.PartialTypes)
 })
 
 let settings
@@ -199,8 +199,6 @@ client.on('messageReactionAdd', (reaction_orig, user) => {
   if (reaction_orig.message.channel.id == smugboardID) return
   // if reaction is not desired emoji
   if (reaction_orig.emoji.name !== settings.reactionEmoji) return
-
-  const msg = reaction_orig.message
 
   manageBoard(reaction_orig)
 })
