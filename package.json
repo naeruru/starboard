@@ -10,9 +10,9 @@
   "author": "Rushnett",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^12.2.0",
-    "node-fetch": "^2.6.1",
+    "discord.js": "^12.5.3",
     "mariadb": "^2.4.2",
+    "node-fetch": "^2.6.1",
     "sequelize": "^6.3.5",
     "setimmediate": "^1.0.5"
   }
