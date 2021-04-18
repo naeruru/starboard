@@ -100,68 +100,77 @@ function manageBoard (reaction_orig) {
       return
     }
 
-    // we need to do this because the reaction count seems to be 1 if an old cached
-    // message is starred. This is to get the 'actual' count
-    msg.reactions.cache.forEach((reaction) => {
-      if (reaction.emoji.name == settings.reactionEmoji) {
-        console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
-        // did message reach threshold
-        if (reaction.count >= settings.threshold) {
-          // if message is already posted
-          if (messagePosted[msg.id]) {
-            const editableMessageID = messagePosted[msg.id]
-            console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-            const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-            postChannel.messages.fetch(editableMessageID).then((message) => {
-              message.embeds[0].setFooter(messageFooter)
-              message.edit(message.embeds[0])
+    // retrieve MessageReaction object from map
+    // needed because cached messages have count missing
+    let reaction = msg.reactions.cache.filter(reaction => reaction.emoji.name === settings.reactionEmoji)
+    reaction = reaction.get([... reaction.keys()][0])
+    // if cant find reaction (result of cached reaction reaching 0)
+    if (!reaction) {
+      deletePost(msg)
+      return
+    }
 
-              // if db
-              if (db)
-                db.updatePost(message, msg, reaction.count, message.embeds[0].image)
+    console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
 
-            })
-          } else {
-            console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
-            // add message to ongoing object in memory
-            messagePosted[msg.id] = true
+    // did message reach threshold
+    if (reaction.count >= settings.threshold) {
+      // if message is already posted
+      if (messagePosted[msg.id]) {
+        const editableMessageID = messagePosted[msg.id]
+        console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
+        const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
+        postChannel.messages.fetch(editableMessageID).then((message) => {
+          message.embeds[0].setFooter(messageFooter)
+          message.edit(message.embeds[0])
 
-            // create content message
-            const contentMsg = `${msg.content}\n\n→ [original message](${msgLink}) in <#${msg.channel.id}>`
-            const avatarURL = `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`
-            const embeds = msg.embeds
-            const attachments = msg.attachments
-            const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-            let eURL = ''
+          // if db
+          if (db)
+            db.updatePost(message, msg, reaction.count, message.embeds[0].image)
 
-            if (embeds.length > 0) {
-              // attempt to resolve image url; if none exist, ignore it
-              if (embeds[0].thumbnail && embeds[0].thumbnail.url) { eURL = embeds[0].thumbnail.url } else if (embeds[0].image && embeds[0].image.url) { eURL = embeds[0].image.url } else { eURL = embeds[0].url }
-            } else if (attachments.array().length > 0) {
-              const attARR = attachments.array()
-              eURL = attARR[0].url
-            }
+        })
+      } else {
+        console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
 
-            const embed = new Discord.MessageEmbed()
-              .setAuthor(msg.author.username, avatarURL)
-              .setColor(settings.hexcolor)
-              .setDescription(contentMsg)
-              .setImage(eURL)
-              .setTimestamp(new Date())
-              .setFooter(messageFooter)
-            postChannel.send({
-              embed
-            }).then((starMessage) => {
-              messagePosted[msg.id] = starMessage.id
+        // add message to ongoing object in memory
+        messagePosted[msg.id] = true
 
-              // if db
-              if (db)
-                db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
-            })
-          }
+        // create content data
+        const data = {
+          content: `${msg.content}\n\n→ [original message](${msgLink}) in <#${msg.channel.id}>`,
+          avatarURL: `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`,
+          imageURL: '',
+          footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
         }
+
+        // resolve any images
+        if (msg.embeds.length) {
+          const imgs = msg.embeds
+            .filter(embed => embed.thumbnail || embed.image)
+            .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
+          data.imageURL = imgs[0]
+        } else if (msg.attachments.array().length) {
+          data.imageURL = msg.attachments.array()[0].url
+          data.content += `\n📎 [${msg.attachments.array()[0].name}](${msg.attachments.array()[0].proxyURL})`
+        }
+
+        const embed = new Discord.MessageEmbed()
+          .setAuthor(msg.author.username, data.avatarURL)
+          .setColor(settings.hexcolor)
+          .setDescription(data.content)
+          .setImage(data.imageURL)
+          .setTimestamp(new Date())
+          .setFooter(data.footer)
+        postChannel.send({
+          embed
+        }).then((starMessage) => {
+          messagePosted[msg.id] = starMessage.id
+
+          // if db
+          if (db)
+            db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
+        })
       }
-    })
+    }
   })
 }
 
