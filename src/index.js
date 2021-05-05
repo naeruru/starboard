@@ -147,6 +147,13 @@ function manageBoard (reaction_orig) {
             .filter(embed => embed.thumbnail || embed.image)
             .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
           data.imageURL = imgs[0]
+
+          // twitch clip check
+          const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
+          if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
+            data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          }
+
         } else if (msg.attachments.array().length) {
           data.imageURL = msg.attachments.array()[0].url
           data.content += `\n📎 [${msg.attachments.array()[0].name}](${msg.attachments.array()[0].proxyURL})`
