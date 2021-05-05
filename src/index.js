@@ -87,11 +87,10 @@ async function loadIntoMemory () {
 function manageBoard (reaction_orig) {
 
   const msg = reaction_orig.message
-  const msgChannel = client.guilds.cache.get(guildID).channels.cache.get(msg.channel.id)
-  const msgLink = `https://discordapp.com/channels/${guildID}/${msg.channel.id}/${msg.id}`
+  const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
-  msgChannel.messages.fetch(msg.id).then((msg) => {
+  msg.channel.messages.fetch(msg.id).then((msg) => {
     // if message is older than set amount
     const dateDiff = (new Date()) - reaction_orig.message.createdAt
     const dateCutoff = 1000 * 60 * 60 * 24
@@ -110,7 +109,7 @@ function manageBoard (reaction_orig) {
       return
     }
 
-    console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msgChannel.name} total: ${reaction.count}`)
+    console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msg.channel.name} total: ${reaction.count}`)
 
     // did message reach threshold
     if (reaction.count >= settings.threshold) {
