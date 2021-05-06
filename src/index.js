@@ -118,7 +118,7 @@ function manageBoard (reaction_orig) {
         const editableMessageID = messagePosted[msg.id]
         console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
         const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-        postChannel.messages.fetch(editableMessageID).then((message) => {
+        postChannel.messages.fetch(editableMessageID).then(message => {
           message.embeds[0].setFooter(messageFooter)
           message.edit(message.embeds[0])
 
@@ -126,6 +126,8 @@ function manageBoard (reaction_orig) {
           if (db)
             db.updatePost(message, msg, reaction.count, message.embeds[0].image)
 
+        }).catch(err => {
+          console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
         })
       } else {
         console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
@@ -166,9 +168,7 @@ function manageBoard (reaction_orig) {
           .setImage(data.imageURL)
           .setTimestamp(new Date())
           .setFooter(data.footer)
-        postChannel.send({
-          embed
-        }).then((starMessage) => {
+        postChannel.send({ embed }).then(starMessage => {
           messagePosted[msg.id] = starMessage.id
 
           // if db
