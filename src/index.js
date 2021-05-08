@@ -116,6 +116,8 @@ function manageBoard (reaction_orig) {
       // if message is already posted
       if (messagePosted[msg.id]) {
         const editableMessageID = messagePosted[msg.id]
+        if (editableMessageID === true) return // message not yet posted (too fast)
+
         console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
         const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
         postChannel.messages.fetch(editableMessageID).then(message => {
