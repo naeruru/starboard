@@ -7,7 +7,8 @@
 // discord init
 const Discord = require('discord.js')
 const client = new Discord.Client({
-  partials: Object.values(Discord.Constants.PartialTypes)
+  partials: Object.values(Discord.Constants.PartialTypes),
+  intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS']
 })
 
 let settings
@@ -122,7 +123,7 @@ function manageBoard (reaction_orig) {
         const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
         postChannel.messages.fetch(editableMessageID).then(message => {
           message.embeds[0].setFooter(messageFooter)
-          message.edit(message.embeds[0])
+          message.edit({ embeds: [message.embeds[0]] })
 
           // if db
           if (db)
@@ -170,7 +171,7 @@ function manageBoard (reaction_orig) {
           .setImage(data.imageURL)
           .setTimestamp(new Date())
           .setFooter(data.footer)
-        postChannel.send({ embed }).then(starMessage => {
+        postChannel.send({ embeds: [embed] }).then(starMessage => {
           messagePosted[msg.id] = starMessage.id
 
           // if db
