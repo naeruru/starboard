@@ -163,9 +163,9 @@ function manageBoard (reaction_orig) {
             data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
           }
 
-        } else if (msg.attachments.array().length) {
-          data.imageURL = msg.attachments.array()[0].url
-          data.content += `\n📎 [${msg.attachments.array()[0].name}](${msg.attachments.array()[0].proxyURL})`
+        } else if (msg.attachments.size) {
+          data.imageURL = msg.attachments.first().url
+          data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
         }
 
         const embed = new Discord.MessageEmbed()
