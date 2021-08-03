@@ -3,7 +3,7 @@ Starboard (also known as the smugboard™) is a Discordjs bot originally created
 
 ## Getting Started
 ### Requirements
-NodeJS 12.0.0+
+NodeJS 14.6.0+
 ### Setup
 After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file in the config folder. The following is an example of how the file needs to look:
 ```
