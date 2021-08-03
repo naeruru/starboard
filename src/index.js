@@ -252,5 +252,10 @@ client.on('messageDelete', (msg) => {
     db.setDeleted(msg.id)
 })
 
+// if embed was deleted (db only)
+client.on('messageUpdate', (oldMsg, newMsg) => {
+  if (db && oldMsg.channel.id === smugboardID && oldMsg.embeds.length && !newMsg.embeds.length)
+    db.setDeleted(newMsg.id)
+})
 
 setup()
