@@ -10,7 +10,7 @@
   "author": "Rushnett",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "https://github.com/discordjs/discord.js/tarball/master",
+    "discord.js": "^13.0.1",
     "mariadb": "^2.4.2",
     "node-fetch": "^2.6.1",
     "sequelize": "^6.3.5",
