@@ -7,7 +7,8 @@
 // discord init
 const Discord = require('discord.js')
 const client = new Discord.Client({
-  partials: Object.values(Discord.Constants.PartialTypes)
+  partials: Object.values(Discord.Constants.PartialTypes),
+  intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS']
 })
 
 let settings
@@ -87,7 +88,6 @@ async function loadIntoMemory () {
 function manageBoard (reaction_orig) {
 
   const msg = reaction_orig.message
-  const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
   msg.channel.messages.fetch(msg.id).then((msg) => {
@@ -122,7 +122,7 @@ function manageBoard (reaction_orig) {
         const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
         postChannel.messages.fetch(editableMessageID).then(message => {
           message.embeds[0].setFooter(messageFooter)
-          message.edit(message.embeds[0])
+          message.edit({ embeds: [message.embeds[0]] })
 
           // if db
           if (db)
@@ -139,11 +139,16 @@ function manageBoard (reaction_orig) {
 
         // create content data
         const data = {
-          content: `${msg.content}\n\n→ [original message](${msgLink}) in <#${msg.channel.id}>`,
+          content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
           avatarURL: `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`,
           imageURL: '',
           footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
         }
+
+        // add msg origin info to content prop
+        const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+        const channelLink = (msg.channel.type.includes('THREAD')) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+        data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
         // resolve any images
         if (msg.embeds.length) {
@@ -158,9 +163,9 @@ function manageBoard (reaction_orig) {
             data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
           }
 
-        } else if (msg.attachments.array().length) {
-          data.imageURL = msg.attachments.array()[0].url
-          data.content += `\n📎 [${msg.attachments.array()[0].name}](${msg.attachments.array()[0].proxyURL})`
+        } else if (msg.attachments.size) {
+          data.imageURL = msg.attachments.first().url
+          data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
         }
 
         const embed = new Discord.MessageEmbed()
@@ -170,7 +175,7 @@ function manageBoard (reaction_orig) {
           .setImage(data.imageURL)
           .setTimestamp(new Date())
           .setFooter(data.footer)
-        postChannel.send({ embed }).then(starMessage => {
+        postChannel.send({ embeds: [embed] }).then(starMessage => {
           messagePosted[msg.id] = starMessage.id
 
           // if db
@@ -247,5 +252,10 @@ client.on('messageDelete', (msg) => {
     db.setDeleted(msg.id)
 })
 
+// if embed was deleted (db only)
+client.on('messageUpdate', (oldMsg, newMsg) => {
+  if (db && oldMsg.channel.id === smugboardID && oldMsg.embeds.length && !newMsg.embeds.length)
+    db.setDeleted(newMsg.id)
+})
 
 setup()
