@@ -203,7 +203,7 @@ client.on('ready', () => {
 })
 
 // ON REACTION ADD
-client.on('messageReactionAdd', async (reaction, user) => {
+client.on('messageReactionAdd', async (reaction) => {
   if (loading) return
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return
@@ -223,7 +223,7 @@ client.on('messageReactionAdd', async (reaction, user) => {
 })
 
 // ON REACTION REMOVE
-client.on('messageReactionRemove', async (reaction, user) => {
+client.on('messageReactionRemove', async (reaction) => {
   if (loading) return
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return
