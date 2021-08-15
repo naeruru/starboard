@@ -210,13 +210,11 @@ client.on('messageReactionAdd', async (reaction) => {
   // if reaction is not desired emoji
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
-  // check if partial
-  if (reaction.partial) {
-    try {
-      await reaction.fetch()
-    } catch(err) {
-      return console.error(`error fetching reaction:\n${err}`)
-    }
+  // refetch the message to tempfix djs ReactionManager bug
+  try {
+    await reaction.fetch()
+  } catch(err) {
+    return console.error(`error fetching reaction:\n${err}`)
   }
 
   manageBoard(reaction)
@@ -230,15 +228,12 @@ client.on('messageReactionRemove', async (reaction) => {
   // if reaction is not desired emoji
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
-
-  // check if partial
-  if (reaction.partial) {
-    try {
-      await reaction.fetch()
-    } catch(err) {
-      console.error(`error fetching reaction:\n${err}`)
-      return
-    }
+  // refetch the message to tempfix djs ReactionManager bug
+  try {
+    await reaction.fetch()
+  } catch(err) {
+    console.error(`error fetching reaction:\n${err}`)
+    return
   }
 
   // if reactions reach 0
