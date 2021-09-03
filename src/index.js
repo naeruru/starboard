@@ -211,10 +211,13 @@ client.on('messageReactionAdd', async (reaction) => {
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
   // refetch the message to tempfix djs ReactionManager bug
-  try {
-    await reaction.fetch()
-  } catch(err) {
-    return console.error(`error fetching reaction:\n${err}`)
+  if (reaction.count <= 1) {
+    try {
+      await reaction.fetch()
+    } catch(err) {
+      console.error(`error fetching reaction:\n${err}`)
+      return
+    }
   }
 
   manageBoard(reaction)
@@ -229,11 +232,13 @@ client.on('messageReactionRemove', async (reaction) => {
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
   // refetch the message to tempfix djs ReactionManager bug
-  try {
-    await reaction.fetch()
-  } catch(err) {
-    console.error(`error fetching reaction:\n${err}`)
-    return
+  if (reaction.count <= 1) {
+    try {
+      await reaction.fetch()
+    } catch(err) {
+      console.error(`error fetching reaction:\n${err}`)
+      return
+    }
   }
 
   // if reactions reach 0
