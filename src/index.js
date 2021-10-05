@@ -42,6 +42,19 @@ function setup () {
   }
 }
 
+// takes a discordjs data structure
+// fetches full structure if partial
+function fetchStructure(structure) {
+  return new Promise((resolve, reject) => {
+    if (structure.partial) {
+      structure.fetch()
+        .then((structure) => resolve(structure))
+        .catch((error) => reject(error))
+    } else {
+      resolve(structure)
+    }
+  })
+}
 
 async function * messagesIterator (channel, messagesLeft) {
   let before = null
@@ -203,7 +216,7 @@ client.on('ready', () => {
 })
 
 // ON REACTION ADD
-client.on('messageReactionAdd', async (reaction) => {
+client.on('messageReactionAdd', (reaction) => {
   if (loading) return
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return
@@ -211,19 +224,15 @@ client.on('messageReactionAdd', async (reaction) => {
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
   // check if partial
-  if (reaction.partial) {
-    try {
-      await reaction.fetch()
-    } catch(err) {
-      return console.error(`error fetching reaction:\n${err}`)
-    }
-  }
-
-  manageBoard(reaction)
+  fetchStructure(reaction).then((reaction) => {
+    manageBoard(reaction)
+  }).catch((error) => {
+    console.error(`error fetching reaction:\n${error}`)
+  })
 })
 
 // ON REACTION REMOVE
-client.on('messageReactionRemove', async (reaction) => {
+client.on('messageReactionRemove', (reaction) => {
   if (loading) return
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return
@@ -232,20 +241,15 @@ client.on('messageReactionRemove', async (reaction) => {
 
 
   // check if partial
-  if (reaction.partial) {
-    try {
-      await reaction.fetch()
-    } catch(err) {
-      console.error(`error fetching reaction:\n${err}`)
-      return
-    }
-  }
-
-  // if reactions reach 0
-  if (reaction.count === 0)
-    deletePost(reaction.message)
-  else
-    manageBoard(reaction)
+  fetchStructure(reaction).then((reaction) => {
+    // if reactions reach 0
+    if (reaction.count === 0)
+      deletePost(reaction.message)
+    else
+      manageBoard(reaction)
+  }).catch((error) => {
+    console.error(`error fetching reaction:\n${error}`)
+  })
 })
 
 // ON REACTION PURGE
