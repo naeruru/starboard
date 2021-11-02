@@ -42,6 +42,19 @@ function setup () {
   }
 }
 
+// takes a discordjs data structure
+// fetches full structure if partial
+function fetchStructure(structure) {
+  return new Promise((resolve, reject) => {
+    if (structure.partial) {
+      structure.fetch()
+        .then((structure) => resolve(structure))
+        .catch((error) => reject(error))
+    } else {
+      resolve(structure)
+    }
+  })
+}
 
 async function * messagesIterator (channel, messagesLeft) {
   let before = null
@@ -85,106 +98,94 @@ async function loadIntoMemory () {
 }
 
 // manage the message board on reaction add/remove
-function manageBoard (reaction_orig) {
+function manageBoard (reaction) {
 
-  const msg = reaction_orig.message
+  const msg = reaction.message
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
-  msg.channel.messages.fetch(msg.id).then((msg) => {
-    // if message is older than set amount
-    const dateDiff = (new Date()) - reaction_orig.message.createdAt
-    const dateCutoff = 1000 * 60 * 60 * 24
-    if (Math.floor(dateDiff / dateCutoff) >= settings.dateCutoff) {
-      console.log(`a message older than ${settings.dateCutoff} days was reacted to, ignoring`)
-      return
-    }
+  // if message is older than set amount
+  const dateDiff = (new Date()) - msg.createdAt
+  const dateCutoff = 1000 * 60 * 60 * 24
+  if (Math.floor(dateDiff / dateCutoff) >= settings.dateCutoff) {
+    console.log(`a message older than ${settings.dateCutoff} days was reacted to, ignoring`)
+    return
+  }
 
-    // retrieve MessageReaction object from map
-    // needed because cached messages have count missing
-    let reaction = msg.reactions.cache.filter(reaction => reaction.emoji.name === settings.reactionEmoji)
-    reaction = reaction.get([... reaction.keys()][0])
-    // if cant find reaction (result of cached reaction reaching 0)
-    if (!reaction) {
-      deletePost(msg)
-      return
-    }
+  console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msg.channel.name} total: ${reaction.count}`)
 
-    console.log(`message ${settings.reactionEmoji}'d! (${msg.id}) in #${msg.channel.name} total: ${reaction.count}`)
+  // did message reach threshold
+  if (reaction.count >= settings.threshold) {
+    // if message is already posted
+    if (messagePosted[msg.id]) {
+      const editableMessageID = messagePosted[msg.id]
+      if (editableMessageID === true) return // message not yet posted (too fast)
 
-    // did message reach threshold
-    if (reaction.count >= settings.threshold) {
-      // if message is already posted
-      if (messagePosted[msg.id]) {
-        const editableMessageID = messagePosted[msg.id]
-        if (editableMessageID === true) return // message not yet posted (too fast)
+      console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
+      const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
+      postChannel.messages.fetch(editableMessageID).then(message => {
+        message.embeds[0].setFooter(messageFooter)
+        message.edit({ embeds: [message.embeds[0]] })
 
-        console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-        const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-        postChannel.messages.fetch(editableMessageID).then(message => {
-          message.embeds[0].setFooter(messageFooter)
-          message.edit({ embeds: [message.embeds[0]] })
+        // if db
+        if (db)
+          db.updatePost(message, msg, reaction.count, message.embeds[0].image)
 
-          // if db
-          if (db)
-            db.updatePost(message, msg, reaction.count, message.embeds[0].image)
+      }).catch(err => {
+        console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
+      })
+    } else {
+      console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
 
-        }).catch(err => {
-          console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
-        })
-      } else {
-        console.log(`posting message with content ID ${msg.id}. reaction count: ${reaction.count}`)
+      // add message to ongoing object in memory
+      messagePosted[msg.id] = true
 
-        // add message to ongoing object in memory
-        messagePosted[msg.id] = true
-
-        // create content data
-        const data = {
-          content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
-          avatarURL: `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`,
-          imageURL: '',
-          footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-        }
-
-        // add msg origin info to content prop
-        const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-        const channelLink = (msg.channel.type.includes('THREAD')) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-        data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
-
-        // resolve any images
-        if (msg.embeds.length) {
-          const imgs = msg.embeds
-            .filter(embed => embed.thumbnail || embed.image)
-            .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
-          data.imageURL = imgs[0]
-
-          // twitch clip check
-          const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
-          if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
-            data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
-          }
-
-        } else if (msg.attachments.size) {
-          data.imageURL = msg.attachments.first().url
-          data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
-        }
-
-        const embed = new Discord.MessageEmbed()
-          .setAuthor(msg.author.username, data.avatarURL)
-          .setColor(settings.hexcolor)
-          .setDescription(data.content)
-          .setImage(data.imageURL)
-          .setTimestamp(new Date())
-          .setFooter(data.footer)
-        postChannel.send({ embeds: [embed] }).then(starMessage => {
-          messagePosted[msg.id] = starMessage.id
-
-          // if db
-          if (db)
-            db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
-        })
+      // create content data
+      const data = {
+        content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
+        avatarURL: `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`,
+        imageURL: '',
+        footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       }
+
+      // add msg origin info to content prop
+      const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+      const channelLink = (msg.channel.type.includes('THREAD')) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+      data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+
+      // resolve any images
+      if (msg.embeds.length) {
+        const imgs = msg.embeds
+          .filter(embed => embed.thumbnail || embed.image)
+          .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
+        data.imageURL = imgs[0]
+
+        // twitch clip check
+        const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
+        if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
+          data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+        }
+
+      } else if (msg.attachments.size) {
+        data.imageURL = msg.attachments.first().url
+        data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
+      }
+
+      const embed = new Discord.MessageEmbed()
+        .setAuthor(msg.author.username, data.avatarURL)
+        .setColor(settings.hexcolor)
+        .setDescription(data.content)
+        .setImage(data.imageURL)
+        .setTimestamp(new Date())
+        .setFooter(data.footer)
+      postChannel.send({ embeds: [embed] }).then(starMessage => {
+        messagePosted[msg.id] = starMessage.id
+
+        // if db
+        if (db)
+          db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
+      })
     }
-  })
+  }
 }
 
 // delete a post
@@ -215,18 +216,23 @@ client.on('ready', () => {
 })
 
 // ON REACTION ADD
-client.on('messageReactionAdd', (reaction_orig, user) => {
+client.on('messageReactionAdd', (reaction) => {
   if (loading) return
   // if channel is posting channel
-  if (reaction_orig.message.channel.id == smugboardID) return
+  if (reaction.message.channel.id == smugboardID) return
   // if reaction is not desired emoji
-  if (reaction_orig.emoji.name !== settings.reactionEmoji) return
+  if (reaction.emoji.name !== settings.reactionEmoji) return
 
-  manageBoard(reaction_orig)
+  // check if partial
+  fetchStructure(reaction).then((reaction) => {
+    manageBoard(reaction)
+  }).catch((error) => {
+    console.error(`error fetching reaction:\n${error}`)
+  })
 })
 
 // ON REACTION REMOVE
-client.on('messageReactionRemove', (reaction, user) => {
+client.on('messageReactionRemove', (reaction) => {
   if (loading) return
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return
@@ -234,11 +240,16 @@ client.on('messageReactionRemove', (reaction, user) => {
   if (reaction.emoji.name !== settings.reactionEmoji) return
 
 
-  // if reactions reach 0
-  if (reaction.count === 0)
-    return deletePost(reaction.message)
-  else
-    manageBoard(reaction)
+  // check if partial
+  fetchStructure(reaction).then((reaction) => {
+    // if reactions reach 0
+    if (reaction.count === 0)
+      deletePost(reaction.message)
+    else
+      manageBoard(reaction)
+  }).catch((error) => {
+    console.error(`error fetching reaction:\n${error}`)
+  })
 })
 
 // ON REACTION PURGE
