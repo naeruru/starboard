@@ -12,7 +12,7 @@
   "dependencies": {
     "discord.js": "^13.2.0",
     "mariadb": "^2.5.4",
-    "node-fetch": "^2.6.1",
+    "node-fetch": "^3.1.1",
     "sequelize": "^6.3.5",
     "setimmediate": "^1.0.5"
   }
