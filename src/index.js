@@ -123,7 +123,7 @@ function manageBoard (reaction) {
       console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
       const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       postChannel.messages.fetch(editableMessageID).then(message => {
-        message.embeds[0].setFooter(messageFooter)
+        message.embeds[0].setFooter({ text: messageFooter, iconURL: null })
         message.edit({ embeds: [message.embeds[0]] })
 
         // if db
@@ -142,7 +142,7 @@ function manageBoard (reaction) {
       // create content data
       const data = {
         content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
-        avatarURL: `https://cdn.discordapp.com/avatars/${msg.author.id}/${msg.author.avatar}.jpg`,
+        avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
         imageURL: '',
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       }
@@ -159,6 +159,9 @@ function manageBoard (reaction) {
           .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
         data.imageURL = imgs[0]
 
+        // tenor gif fix (experimental)
+        data.imageURL = data.imageURL.replace(/(https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$2.gif")
+
         // twitch clip check
         const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
         if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
@@ -171,12 +174,12 @@ function manageBoard (reaction) {
       }
 
       const embed = new Discord.MessageEmbed()
-        .setAuthor(msg.author.username, data.avatarURL)
+        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: data.avatarURL })
         .setColor(settings.hexcolor)
         .setDescription(data.content)
         .setImage(data.imageURL)
         .setTimestamp(new Date())
-        .setFooter(data.footer)
+        .setFooter({ text: data.footer, iconURL: null })
       postChannel.send({ embeds: [embed] }).then(starMessage => {
         messagePosted[msg.id] = starMessage.id
 
