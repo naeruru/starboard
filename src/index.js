@@ -160,7 +160,7 @@ function manageBoard (reaction) {
         data.imageURL = imgs[0]
 
         // tenor gif fix (experimental)
-        data.imageURL = data.imageURL.replace(/(https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$2.gif")
+        data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
 
         // twitch clip check
         const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
