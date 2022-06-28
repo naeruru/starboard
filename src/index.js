@@ -159,8 +159,9 @@ function manageBoard (reaction) {
           .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
         data.imageURL = imgs[0]
 
-        // tenor gif fix (experimental)
+        // site specific gif fixes
         data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+        data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
 
         // twitch clip check
         const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
