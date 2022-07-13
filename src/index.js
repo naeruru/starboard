@@ -157,16 +157,19 @@ function manageBoard (reaction) {
         const imgs = msg.embeds
           .filter(embed => embed.thumbnail || embed.image)
           .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
-        data.imageURL = imgs[0]
 
-        // site specific gif fixes
-        data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
-        data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
+        if (imgs.length) {
+          data.imageURL = imgs[0]
 
-        // twitch clip check
-        const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
-        if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
-          data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          // site specific gif fixes
+          data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+          data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
+
+          // twitch clip check
+          const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
+          if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
+            data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          }
         }
 
       } else if (msg.attachments.size) {
