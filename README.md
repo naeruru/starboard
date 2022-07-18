@@ -3,9 +3,12 @@ Starboard (also known as the smugboard™) is a Discordjs bot originally created
 
 ## Getting Started
 ### Requirements
-NodeJS 16.6.0+
+- NodeJS 16.9.0+
+- Enable Discord "Message Content Intent" (in Discord App/Bot settings)
 ### Setup
-After cloning the repository, the only setup that needs to be done involves creating a `settings.json` file in the config folder. The following is an example of how the file needs to look:
+Create a [Discord application](https://discord.com/developers/applications) bot, and enable **Message Content Intent** under the **Privilieged Gateway Intents** section in the **bot** tab. This is required for your application to be able to view message content.
+
+After creating your bot and cloning the repository, the only setup that needs to be done involves creating a `settings.json` file in the config folder. The following is an example of how the file needs to look:
 ```
 {
   "token": "bot_token",
