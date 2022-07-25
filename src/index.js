@@ -61,7 +61,7 @@ async function * messagesIterator (channel, messagesLeft) {
   let done = false
   while (messagesLeft > 0) {
     process.stdout.write(".")
-    const messages = await channel.messages.fetch({ limit: 100, before })
+    const messages = await channel.messages.fetch({ limit: (messagesLeft < 100) ? messagesLeft : 100, before })
     if (messages.size > 0) {
       before = messages.lastKey()
       messagesLeft = messagesLeft - 100
@@ -86,7 +86,7 @@ async function loadIntoMemory () {
   for await (const message of loadMessages(channel, amount)) {
     // verify footer exists and grab original message ID
     if (message.embeds.length > 0 && message.embeds[0].footer) {
-      const footerID = String(message.embeds[0].footer.text).match(/\((\d{18})\)/)
+      const footerID = String(message.embeds[0].footer.text).match(/\((\d{18,})\)/)
       if (footerID) {
         // save post to memory
         messagePosted[footerID[1]] = message.id // starboard msg id
