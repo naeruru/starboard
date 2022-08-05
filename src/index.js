@@ -5,10 +5,10 @@
  */
 
 // discord init
-const Discord = require('discord.js')
-const client = new Discord.Client({
-  partials: Object.values(Discord.Constants.PartialTypes),
-  intents: ['GUILDS', 'GUILD_MESSAGES', 'GUILD_MESSAGE_REACTIONS']
+const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType } = require('discord.js')
+const client = new Client({
+  partials: [Partials.User, Partials.Channel, Partials.GuildMember, Partials.Message, Partials.Reaction],
+  intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent]
 })
 
 let settings
@@ -123,8 +123,17 @@ function manageBoard (reaction) {
       console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
       const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       postChannel.messages.fetch(editableMessageID).then(message => {
-        message.embeds[0].setFooter({ text: messageFooter, iconURL: null })
-        message.edit({ embeds: [message.embeds[0]] })
+        // rebuild embed
+        const origEmbed = message.embeds[0]
+        const updatedEmbed = new EmbedBuilder()
+          .setAuthor(origEmbed.author)
+          .setColor(origEmbed.color)
+          .setDescription(origEmbed.description)
+          .setImage((origEmbed.image) ? origEmbed.image.url : null)
+          .setTimestamp(new Date(origEmbed.timestamp))
+          .setFooter({ text: messageFooter, iconURL: null })
+
+        message.edit({ embeds: [updatedEmbed] })
 
         // if db
         if (db)
@@ -149,7 +158,8 @@ function manageBoard (reaction) {
 
       // add msg origin info to content prop
       const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-      const channelLink = (msg.channel.type.includes('THREAD')) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+      const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
+      const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
       data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
       // resolve any images
@@ -177,11 +187,11 @@ function manageBoard (reaction) {
         data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
       }
 
-      const embed = new Discord.MessageEmbed()
+      const embed = new EmbedBuilder()
         .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: data.avatarURL })
         .setColor(settings.hexcolor)
         .setDescription(data.content)
-        .setImage(data.imageURL)
+        .setImage((data.imageURL) ? data.imageURL : null)
         .setTimestamp(new Date())
         .setFooter({ text: data.footer, iconURL: null })
       postChannel.send({ embeds: [embed] }).then(starMessage => {
