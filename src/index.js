@@ -176,9 +176,9 @@ function manageBoard (reaction) {
           data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
 
           // twitch clip check
-          const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
-          if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
-            data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
+          if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
+            data.content += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
           }
         }
 
