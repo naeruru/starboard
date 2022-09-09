@@ -15,7 +15,7 @@ let settings
 let db
 let guildID = ''
 let smugboardID = ''
-let messagePosted = {}
+const messagePosted = {}
 let loading = true
 
 function setup () {
@@ -98,7 +98,7 @@ async function loadIntoMemory () {
 }
 
 // manage the message board on reaction add/remove
-function manageBoard (reaction) {
+async function manageBoard (reaction) {
 
   const msg = reaction.message
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
@@ -150,7 +150,7 @@ function manageBoard (reaction) {
 
       // create content data
       const data = {
-        content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
+        content: (msg.content.length < 3850) ? msg.content : `${msg.content.substring(0, 3850)} **[ ... ]**`,
         avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
         imageURL: '',
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
@@ -161,6 +161,18 @@ function manageBoard (reaction) {
       const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
       const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
       data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+
+      // resolve reply message
+      if (msg.reference && msg.reference.messageId) {
+        await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
+          let replyContent = message.content.replace(/\n/g, ' ')
+          replyContent = (replyContent.length > 60) ? `${replyContent.substring(0, 60)}...` : replyContent
+          data.content = (data.content) ? data.content : `\n\n${data.content}`
+          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}`
+        }).catch(err => {
+          console.error(`error getting reply msg: ${message.id} (for ${msg.id})\n${err}`)
+        })
+      }
 
       // resolve any images
       if (msg.embeds.length) {
