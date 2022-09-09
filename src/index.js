@@ -201,7 +201,7 @@ async function manageBoard (reaction) {
       }
 
       const embed = new EmbedBuilder()
-        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: data.avatarURL })
+        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
         .setColor(settings.hexcolor)
         .setDescription(data.content)
         .setImage((data.imageURL) ? data.imageURL : null)
