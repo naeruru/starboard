@@ -156,21 +156,22 @@ async function manageBoard (reaction) {
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       }
 
-      // add msg origin info to content prop
-      const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-      const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
-      const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-      data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+       // add msg origin info to content prop
+       const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+       const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
+       const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+       data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
       // resolve reply message
       if (msg.reference && msg.reference.messageId) {
         await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
-          let replyContent = message.content.replace(/\n/g, ' ')
+          // construct reply comment
+          let replyContent = (!msg.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
           replyContent = (replyContent.length > 60) ? `${replyContent.substring(0, 60)}...` : replyContent
-          data.content = (data.content) ? data.content : `\n\n${data.content}`
-          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}`
+          data.content = (msg.content) ? `\n\n${data.content}`: data.content
+          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
         }).catch(err => {
-          console.error(`error getting reply msg: ${message.id} (for ${msg.id})\n${err}`)
+          console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
         })
       }
 
