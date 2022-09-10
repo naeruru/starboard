@@ -166,8 +166,8 @@ async function manageBoard (reaction) {
       if (msg.reference && msg.reference.messageId) {
         await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
           // construct reply comment
-          let replyContent = (!msg.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
-          replyContent = (replyContent.length > 60) ? `${replyContent.substring(0, 60)}...` : replyContent
+          let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
+          replyContent = (replyContent.length > 100) ? `${replyContent.substring(0, 100)}...` : replyContent
           data.content = (msg.content) ? `\n\n${data.content}`: data.content
           data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
         }).catch(err => {
