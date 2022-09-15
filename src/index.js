@@ -198,6 +198,16 @@ async function manageBoard (reaction) {
           }
         }
 
+        // message is entirely an embed (bot msg)
+        if (msg.content === '') {
+          const embed = msg.embeds[0]
+          if (embed.description) {
+            data.content += embed.description
+          } else if (embed.fields && embed.fields[0].value) {
+            data.content += embed.fields[0].value
+          }
+        }
+
       } else if (msg.attachments.size) {
         data.imageURL = msg.attachments.first().url
         msg.attachments.each(attachment => data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`)
