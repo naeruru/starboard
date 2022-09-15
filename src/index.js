@@ -18,6 +18,8 @@ let smugboardID = ''
 const messagePosted = {}
 let loading = true
 
+const MAXLENGTH = 4000
+
 function setup () {
   // load settings.json
   try {
@@ -150,24 +152,25 @@ async function manageBoard (reaction) {
 
       // create content data
       const data = {
-        content: (msg.content.length < 3850) ? msg.content : `${msg.content.substring(0, 3850)} **[ ... ]**`,
+        content: msg.content,
+        contentInfo: '',
         avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
         imageURL: '',
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       }
 
-       // add msg origin info to content prop
-       const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-       const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
-       const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-       data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+      // add msg origin info to content prop
+      const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+      const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
+      const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+      data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
       // resolve reply message
       if (msg.reference && msg.reference.messageId) {
         await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
           // construct reply comment
           let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
-          replyContent = (replyContent.length > 100) ? `${replyContent.substring(0, 100)}...` : replyContent
+          replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
           data.content = (msg.content) ? `\n\n${data.content}`: data.content
           data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
         }).catch(err => {
@@ -175,7 +178,7 @@ async function manageBoard (reaction) {
         })
       }
 
-      // resolve any images
+      // resolve any embeds and images
       if (msg.embeds.length) {
         const imgs = msg.embeds
           .filter(embed => embed.thumbnail || embed.image)
@@ -191,19 +194,23 @@ async function manageBoard (reaction) {
           // twitch clip check
           const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
           if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
-            data.content += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
           }
         }
 
       } else if (msg.attachments.size) {
         data.imageURL = msg.attachments.first().url
-        data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
+        msg.attachments.each(attachment => data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`)
       }
+
+      // max length message
+      if (data.content.length > MAXLENGTH - data.contentInfo.length)
+        data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
         .setColor(settings.hexcolor)
-        .setDescription(data.content)
+        .setDescription(data.content + data.contentInfo)
         .setImage((data.imageURL) ? data.imageURL : null)
         .setTimestamp(new Date())
         .setFooter({ text: data.footer, iconURL: null })
