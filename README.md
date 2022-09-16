@@ -31,7 +31,7 @@ After creating your bot and cloning the repository, the only setup that needs to
 | **reactionEmoji** | String | the emoji you want the bot to listen to. For default emojis, use the literal emoji. To easily obtain this, you can put a `\` infront of any emoji name like `\:star:` in discord (which would create ⭐). For custom emojis, simply put the exact name like `moon2SMUG`. |
 | **embedEmoji** | String | the emoji (Or any other piece of text) displayed at the bottom of the embeds in the starboard channel. |
 | **threshhold** | Integer | the amount of reactions it takes for a message to be posted to the starboard. |
-| **hexcolor** | String | the color of the embed in hex. |
+| **hexcolor** | String | the color of the embed in hex. if null, this value is generated from an incoming message's channel ID (unique color code per channel). |
 | **dateCutoff** | Integer | how old a message can be, in days, and still be tracked by the bot. if you don't want really old messages getting posted, then keep this number low. |
 | **fetchLimit** | Integer | how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to change this with respect to `dateCutoff` and how big your server is. Anything that isn't tracked has the possibility of getting double posted. |
 
