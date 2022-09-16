@@ -216,10 +216,13 @@ async function manageBoard (reaction) {
       // max length message
       if (data.content.length > MAXLENGTH - data.contentInfo.length)
         data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
+      
+      // set message embed color
+      const hexcolor = (settings.hexcolor) ? settings.hexcolor : msg.channel.id.toString(16).substring(0, 6)
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
-        .setColor(settings.hexcolor)
+        .setColor(hexcolor)
         .setDescription(data.content + data.contentInfo)
         .setImage((data.imageURL) ? data.imageURL : null)
         .setTimestamp(new Date())
