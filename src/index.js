@@ -218,7 +218,7 @@ async function manageBoard (reaction) {
         data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
       
       // set message embed color
-      const hexcolor = (settings.hexcolor) ? settings.hexcolor : msg.channel.id.toString(16).substring(2, 8)
+      const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
 
       const embed = new EmbedBuilder()
         .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
