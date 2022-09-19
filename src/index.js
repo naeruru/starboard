@@ -15,8 +15,10 @@ let settings
 let db
 let guildID = ''
 let smugboardID = ''
-let messagePosted = {}
+const messagePosted = {}
 let loading = true
+
+const MAXLENGTH = 4000
 
 function setup () {
   // load settings.json
@@ -98,7 +100,7 @@ async function loadIntoMemory () {
 }
 
 // manage the message board on reaction add/remove
-function manageBoard (reaction) {
+async function manageBoard (reaction) {
 
   const msg = reaction.message
   const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
@@ -150,7 +152,8 @@ function manageBoard (reaction) {
 
       // create content data
       const data = {
-        content: (msg.content.length < 3920) ? msg.content : `${msg.content.substring(0, 3920)} **[ ... ]**`,
+        content: msg.content,
+        contentInfo: '',
         avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
         imageURL: '',
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
@@ -160,9 +163,22 @@ function manageBoard (reaction) {
       const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
       const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
       const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-      data.content += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+      data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
-      // resolve any images
+      // resolve reply message
+      if (msg.reference && msg.reference.messageId) {
+        await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
+          // construct reply comment
+          let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
+          replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
+          data.content = (msg.content) ? `\n\n${data.content}`: data.content
+          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
+        }).catch(err => {
+          console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
+        })
+      }
+
+      // resolve any embeds and images
       if (msg.embeds.length) {
         const imgs = msg.embeds
           .filter(embed => embed.thumbnail || embed.image)
@@ -176,21 +192,38 @@ function manageBoard (reaction) {
           data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
 
           // twitch clip check
-          const videoEmbed = msg.embeds.filter(embed => embed.type === 'video')[0]
-          if (videoEmbed && videoEmbed.video.url.includes("clips.twitch.tv")) {
-            data.content += `\n⬇️ [download clip](${videoEmbed.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
+          if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
+            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          }
+        }
+
+        // message is entirely an embed (bot msg)
+        if (msg.content === '') {
+          const embed = msg.embeds[0]
+          if (embed.description) {
+            data.content += embed.description
+          } else if (embed.fields && embed.fields[0].value) {
+            data.content += embed.fields[0].value
           }
         }
 
       } else if (msg.attachments.size) {
         data.imageURL = msg.attachments.first().url
-        data.content += `\n📎 [${msg.attachments.first().name}](${msg.attachments.first().proxyURL})`
+        msg.attachments.each(attachment => data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`)
       }
 
+      // max length message
+      if (data.content.length > MAXLENGTH - data.contentInfo.length)
+        data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
+      
+      // set message embed color
+      const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
+
       const embed = new EmbedBuilder()
-        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: data.avatarURL })
-        .setColor(settings.hexcolor)
-        .setDescription(data.content)
+        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
+        .setColor(hexcolor)
+        .setDescription(data.content + data.contentInfo)
         .setImage((data.imageURL) ? data.imageURL : null)
         .setTimestamp(new Date())
         .setFooter({ text: data.footer, iconURL: null })
