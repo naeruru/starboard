@@ -48,7 +48,7 @@ function setup () {
 // fetches full structure if partial
 function fetchStructure(structure) {
   return new Promise((resolve, reject) => {
-    if (structure.partial) {
+    if (structure.partial || structure.count <= 1) {
       structure.fetch()
         .then((structure) => resolve(structure))
         .catch((error) => reject(error))
