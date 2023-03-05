@@ -135,9 +135,8 @@ async function manageBoard (reaction) {
         message.edit({ embeds: updatedEmbeds.concat(message.embeds) }).then(starMessage => {
           // if db
           if (db)
-            db.updatePost(message, msg, reaction.count, starMessage.embeds[0].image)
+            db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
         })
-
 
       }).catch(err => {
         console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
