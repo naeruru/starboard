@@ -132,11 +132,12 @@ async function manageBoard (reaction) {
             .setFooter({ text: messageFooter, iconURL: null })
         ]
 
-        message.edit({ embeds: updatedEmbeds.concat(message.embeds) })
+        message.edit({ embeds: updatedEmbeds.concat(message.embeds) }).then(starMessage => {
+          // if db
+          if (db)
+            db.updatePost(message, msg, reaction.count, starMessage.embeds[0].image)
+        })
 
-        // if db
-        if (db)
-          db.updatePost(message, msg, reaction.count, message.embeds[0].image)
 
       }).catch(err => {
         console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
