@@ -126,13 +126,13 @@ async function manageBoard (reaction) {
       const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       postChannel.messages.fetch(editableMessageID).then(message => {
         // rebuild embeds
-        const origEmbed = message.embeds.shift()
+        const origEmbed = message.embeds[0]
         const updatedEmbeds = [
           EmbedBuilder.from(origEmbed)
             .setFooter({ text: messageFooter, iconURL: null })
         ]
 
-        message.edit({ embeds: updatedEmbeds.concat(message.embeds) }).then(starMessage => {
+        message.edit({ embeds: updatedEmbeds.concat(message.embeds.slice(1)) }).then(starMessage => {
           // if db
           if (db)
             db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
