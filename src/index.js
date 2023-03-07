@@ -127,6 +127,7 @@ async function manageBoard (reaction) {
       postChannel.messages.fetch(editableMessageID).then(message => {
         // rebuild embeds
         const origEmbed = message.embeds[0]
+        if (!origEmbed) throw `original embed could not be fetched`
         const updatedEmbeds = [
           EmbedBuilder.from(origEmbed)
             .setFooter({ text: messageFooter, iconURL: null })
