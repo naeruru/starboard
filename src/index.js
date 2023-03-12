@@ -48,7 +48,7 @@ function setup () {
 // fetches full structure if partial
 function fetchStructure(structure) {
   return new Promise((resolve, reject) => {
-    if (structure.partial) {
+    if (structure.partial || structure.count <= 1) {
       structure.fetch()
         .then((structure) => resolve(structure))
         .catch((error) => reject(error))
@@ -125,21 +125,19 @@ async function manageBoard (reaction) {
       console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
       const messageFooter = `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       postChannel.messages.fetch(editableMessageID).then(message => {
-        // rebuild embed
+        // rebuild embeds
         const origEmbed = message.embeds[0]
-        const updatedEmbed = new EmbedBuilder()
-          .setAuthor(origEmbed.author)
-          .setColor(origEmbed.color)
-          .setDescription(origEmbed.description)
-          .setImage((origEmbed.image) ? origEmbed.image.url : null)
-          .setTimestamp(new Date(origEmbed.timestamp))
-          .setFooter({ text: messageFooter, iconURL: null })
+        if (!origEmbed) throw `original embed could not be fetched`
+        const updatedEmbeds = [
+          EmbedBuilder.from(origEmbed)
+            .setFooter({ text: messageFooter, iconURL: null })
+        ]
 
-        message.edit({ embeds: [updatedEmbed] })
-
-        // if db
-        if (db)
-          db.updatePost(message, msg, reaction.count, message.embeds[0].image)
+        message.edit({ embeds: updatedEmbeds.concat(message.embeds.slice(1)) }).then(starMessage => {
+          // if db
+          if (db)
+            db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
+        })
 
       }).catch(err => {
         console.error(`error updating post: ${editableMessageID}\noriginal message: ${msg.id}\n${err}`)
@@ -155,13 +153,14 @@ async function manageBoard (reaction) {
         content: msg.content,
         contentInfo: '',
         avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
-        imageURL: '',
+        // imageURL: '',
+        imageURLs: [],
         footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
       }
 
       // add msg origin info to content prop
       const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-      const threadTypes = [ChannelType.GuildNewsThread, ChannelType.GuildPublicThread, ChannelType.GuildPrivateThread]
+      const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
       const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
       data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
@@ -185,11 +184,16 @@ async function manageBoard (reaction) {
           .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
 
         if (imgs.length) {
-          data.imageURL = imgs[0]
+          // data.imageURL = imgs[0]
+          data.imageURLs = imgs
 
           // site specific gif fixes
-          data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
-          data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
+          data.imageURLs.forEach((url, i) => {
+            data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+            data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
+          })
+          // data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+          // data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
 
           // twitch clip check
           const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
@@ -207,10 +211,13 @@ async function manageBoard (reaction) {
             data.content += embed.fields[0].value
           }
         }
-
-      } else if (msg.attachments.size) {
-        data.imageURL = msg.attachments.first().url
-        msg.attachments.each(attachment => data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`)
+      }
+      if (msg.attachments.size) {
+        // data.imageURL = msg.attachments.first().url
+        msg.attachments.each(attachment => {
+          data.imageURLs.push(attachment.url)
+          data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`
+        })
       }
 
       // max length message
@@ -220,14 +227,23 @@ async function manageBoard (reaction) {
       // set message embed color
       const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
 
-      const embed = new EmbedBuilder()
-        .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
-        .setColor(hexcolor)
-        .setDescription(data.content + data.contentInfo)
-        .setImage((data.imageURL) ? data.imageURL : null)
-        .setTimestamp(new Date())
-        .setFooter({ text: data.footer, iconURL: null })
-      postChannel.send({ embeds: [embed] }).then(starMessage => {
+      // attach all embeds
+      const embeds =  [
+        new EmbedBuilder()
+          .setURL("https://risu.dev/")
+          .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
+          .setColor(hexcolor)
+          .setDescription(data.content + data.contentInfo)
+          .setImage((data.imageURLs.length) ? data.imageURLs.shift() : null)
+          .setTimestamp(new Date())
+          .setFooter({ text: data.footer, iconURL: null }),
+      ]
+      data.imageURLs.forEach(url => {
+        embeds.push(new EmbedBuilder().setURL("https://risu.dev/").setImage(url))
+      })
+
+      // post embed
+      postChannel.send({ embeds: embeds }).then(starMessage => {
         messagePosted[msg.id] = starMessage.id
 
         // if db
