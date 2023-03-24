@@ -224,22 +224,24 @@ async function manageBoard (reaction) {
       if (data.content.length > MAXLENGTH - data.contentInfo.length)
         data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
       
+      // set first image
+      const first_image = (data.imageURLs.length) ? data.imageURLs.shift() : null
       // set message embed color
       const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
 
       // attach all embeds
       const embeds =  [
         new EmbedBuilder()
-          .setURL("https://risu.dev/")
+          .setURL(first_image)
           .setAuthor({ name: msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
           .setColor(hexcolor)
           .setDescription(data.content + data.contentInfo)
-          .setImage((data.imageURLs.length) ? data.imageURLs.shift() : null)
+          .setImage(first_image)
           .setTimestamp(new Date())
           .setFooter({ text: data.footer, iconURL: null }),
       ]
       data.imageURLs.forEach(url => {
-        embeds.push(new EmbedBuilder().setURL("https://risu.dev/").setImage(url))
+        embeds.push(new EmbedBuilder().setURL(first_image).setImage(url))
       })
 
       // post embed
