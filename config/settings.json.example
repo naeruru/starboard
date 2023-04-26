@@ -7,5 +7,6 @@
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
-  "fetchLimit": 100
+  "fetchLimit": 100,
+  "editOnMsgUpdate": true
 }
