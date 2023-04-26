@@ -208,7 +208,6 @@ function editEmbed(reaction, editableMessageID, forceUpdate=false) {
       updatedEmbeds = updatedEmbeds.concat(message.embeds.slice(1))
     }
 
-    console.log(updatedEmbeds)
     message.edit({ embeds: updatedEmbeds }).then(starMessage => {
       // if db
       if (db)
