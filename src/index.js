@@ -364,10 +364,18 @@ client.on('messageDelete', (msg) => {
 client.on('messageUpdate', (oldMsg, newMsg) => {
   if (db && oldMsg.channel.id === smugboardID && oldMsg.embeds.length && !newMsg.embeds.length)
     db.setDeleted(newMsg.id)
-  else if (settings.editOnMsgUpdate && messagePosted[newMsg.id]) {
+  else if (settings.editMsgGracePeriod && messagePosted[newMsg.id]) {
     const reaction = newMsg.reactions.cache.get(settings.reactionEmoji)
     // check if partial
-    if (reaction) editEmbed(reaction, messagePosted[newMsg.id], forceUpdate=true)
+    if (reaction) {
+      const dateDiff = (new Date()) - reaction.message.createdTimestamp
+      const dateCutoff = 1000
+      console.log(Math.floor(dateDiff / dateCutoff))
+      if (Math.floor(dateDiff / dateCutoff) <= settings.editMsgGracePeriod)
+        editEmbed(reaction, messagePosted[newMsg.id], forceUpdate=true)
+      else
+        console.log(`message older than ${settings.editMsgGracePeriod} seconds was edited, ignoring`)
+    }
   }
 })
 
