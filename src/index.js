@@ -211,7 +211,7 @@ function editEmbed(reaction, editableMessageID, forceUpdate=false) {
     message.edit({ embeds: updatedEmbeds }).then(starMessage => {
       // if db
       if (db)
-        db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
+        db.updatePost(starMessage, reaction.message, reaction.count, starMessage.embeds[0].image)
     })
 
   }).catch(err => {
