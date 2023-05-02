@@ -184,12 +184,14 @@ async function buildEmbedFields(reaction) {
 
 // update embed
 function editEmbed(reaction, editableMessageID, forceUpdate=false) {
-  console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-  const messageFooter = `${reaction.count} ${settings.embedEmoji} (${reaction.message.id})`
+  if (reaction.count) console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
   postChannel.messages.fetch(editableMessageID).then(async message => {
     // rebuild embeds
     const origEmbed = message.embeds[0]
     if (!origEmbed) throw `original embed could not be fetched`
+
+    const messageFooter = (reaction.count) ? `${reaction.count} ${settings.embedEmoji} (${reaction.message.id})` : origEmbed.footer.text
+
     let updatedEmbeds = [
       EmbedBuilder.from(origEmbed)
         .setFooter({ text: messageFooter, iconURL: null })
@@ -365,17 +367,13 @@ client.on('messageUpdate', (oldMsg, newMsg) => {
   if (db && oldMsg.channel.id === smugboardID && oldMsg.embeds.length && !newMsg.embeds.length)
     db.setDeleted(newMsg.id)
   else if (settings.editMsgGracePeriod && messagePosted[newMsg.id]) {
-    const reaction = newMsg.reactions.cache.get(settings.reactionEmoji)
-    // check if partial
-    if (reaction) {
-      const dateDiff = (new Date()) - reaction.message.createdTimestamp
-      const dateCutoff = 1000
-      console.log(Math.floor(dateDiff / dateCutoff))
-      if (Math.floor(dateDiff / dateCutoff) <= settings.editMsgGracePeriod)
-        editEmbed(reaction, messagePosted[newMsg.id], forceUpdate=true)
-      else
-        console.log(`message older than ${settings.editMsgGracePeriod} seconds was edited, ignoring`)
-    }
+    const dateDiff = (new Date()) - newMsg.reactions.message.createdTimestamp
+    const dateCutoff = 1000
+    console.log(Math.floor(dateDiff / dateCutoff))
+    if (Math.floor(dateDiff / dateCutoff) <= settings.editMsgGracePeriod)
+      editEmbed(newMsg.reactions, messagePosted[newMsg.id], forceUpdate=true)
+    else
+      console.log(`message older than ${settings.editMsgGracePeriod} seconds was edited, ignoring`)
   }
 })
 
