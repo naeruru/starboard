@@ -19,7 +19,8 @@ After creating your bot and cloning the repository, the only setup that needs to
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
-  "fetchLimit": 100
+  "fetchLimit": 100,
+  "editMsgGracePeriod": 300
 }
 ```
 
@@ -34,7 +35,7 @@ After creating your bot and cloning the repository, the only setup that needs to
 | **hexcolor** | String | the color of the embed in hex. if null, this value is generated from an incoming message's channel ID (unique color code per channel). |
 | **dateCutoff** | Integer | how old a message can be, in days, and still be tracked by the bot. if you don't want really old messages getting posted, then keep this number low. |
 | **fetchLimit** | Integer | how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to change this with respect to `dateCutoff` and how big your server is. Anything that isn't tracked has the possibility of getting double posted. |
-
+| **editMsgGracePeriod** | Integer | how long, in seconds, a message can to be edited to update its board post. disables this feature if set to null or 0. |
 
 ### Running the Project
 Use `npm install` to download dependencies. Finally, you can run the bot with `npm start`. I recommend using pm2 for continuous uptime.
