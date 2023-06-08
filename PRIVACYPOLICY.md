@@ -1,5 +1,5 @@
 # Smugboard Privacy Policy
-Last updated May 5th, 2021
+Last updated June 8th, 2023
 
 ## Introduction
 Smugboard ("this bot" or "me" or "we" or "us" or "our") collects a small amount of data when users ("users" or "you") use this bot through Discord. This Privacy Policy explains how it collects, uses, and safeguards this information. Because this is an open source project, it must be stated that this Privacy Policy strictly pertains to Smugboard (bot administered by me). Any other bots that use this repository may differ slightly from this Privacy Policy and are in no way connected with me. Please read this privacy policy carefully. If you do not agree with the terms, please do not access Discord servers with this bot ("participating servers").
@@ -37,8 +37,8 @@ Your information will never be sold to advertisers or third parties for any reas
 
 
 ## Options regarding your information
-You may at any time request deletion of your stored information. You may do this by messaging me (Rushnett) on participating servers and requesting deletion of your information. You may also create an Issue on this repository ([https://github.com/Rushnett/starboard/issues](https://github.com/Rushnett/starboard/issues)). At the time of requesting, your Discord ID will be collected in order to look up and delete your stored content on our database (searchable by said Discord ID). However, some information will be retained in the participating Discord server (commonly known as the "posting channel").
+You may at any time request deletion of your stored information. You may do this by messaging me (Rushnett) on participating servers and requesting deletion of your information. You may also create an Issue on this repository ([https://github.com/naeruru/starboard/issues](https://github.com/naeruru/starboard/issues)). At the time of requesting, your Discord ID will be collected in order to look up and delete your stored content on our database (searchable by said Discord ID). However, some information will be retained in the participating Discord server (commonly known as the "posting channel").
 
 
 ## Contact
-if you have any questions or comments about this Privacy Policy, you can create an issue on this repository at [https://github.com/Rushnett/starboard/issues](https://github.com/Rushnett/starboard/issues).
+if you have any questions or comments about this Privacy Policy, you can create an issue on this repository at [https://github.com/naeruru/starboard/issues](https://github.com/naeruru/starboard/issues).

@@ -100,6 +100,7 @@ async function loadIntoMemory () {
   console.log(`\nLoaded ${Object.keys(messagePosted).length} previous posts in ${settings.reactionEmoji} channel!`)
 }
 
+// construct json object for embed fields
 async function buildEmbedFields(reaction) {
         const msg = reaction.message
 

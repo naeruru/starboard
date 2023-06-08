@@ -1,6 +1,6 @@
 {
   "name": "starboard",
-  "version": "1.6.0",
+  "version": "1.6.2",
   "description": "discord bot for creating a starboard in a server",
   "main": "src/index.js",
   "scripts": {
