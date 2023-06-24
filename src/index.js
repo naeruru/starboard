@@ -357,6 +357,12 @@ client.on('messageReactionRemoveAll', (msg) => {
   deletePost(msg)
 })
 
+// ON REACTION PURGE SINGLE
+client.on('messageReactionRemoveEmoji', (msgReaction) => {
+  if (msgReaction.emoji.name === settings.reactionEmoji)
+    deletePost(msgReaction.message)
+})
+
 // if post is deleted (db only)
 client.on('messageDelete', (msg) => {
   if (db && msg.channel.id === smugboardID)
