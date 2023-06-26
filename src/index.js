@@ -1,7 +1,7 @@
 /*
  * Starboard discord bot written in nodejs: react to posts and have it post to a pin
  * channel after a configurable threshhold. originally meant for moonmoon_ow discord server.
- * Developed by Rushnett and Keiaxx.
+ * Original version developed by naeruru and Keiaxx.
  */
 
 // discord init
@@ -121,7 +121,7 @@ async function buildEmbedFields(reaction) {
         data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
   
         // resolve reply message
-        if (msg.reference && msg.reference.messageId) {
+        if (msg.reference?.messageId) {
           await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
             // construct reply comment
             let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
