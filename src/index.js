@@ -145,7 +145,7 @@ async function buildEmbedFields(reaction) {
   
             // site specific gif fixes
             data.imageURLs.forEach((url, i) => {
-              data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+              data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAe\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
               data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
             })
             // data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
