@@ -146,16 +146,17 @@ async function buildEmbedFields(reaction) {
             // site specific gif fixes
             data.imageURLs.forEach((url, i) => {
               data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAe\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
-              data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
             })
-            // data.imageURL = data.imageURL.replace(/(^https:\/\/media.tenor.com\/.*)(AAAAD\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
-            // data.imageURL = data.imageURL.replace(/(^https:\/\/thumbs.gfycat.com\/.*-)(poster\.jpg)/, "$1size_restricted.gif")
-  
-            // twitch clip check
-            const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
-            if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
-              data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
-            }
+          }
+
+          // twitch clip check
+          const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
+          if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
+            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+          }
+          if (videoEmbed && videoEmbed.data.url.includes("clips.fxtwitch.tv")) {
+            data.content = data.content.replace(/((https:\/\/)(clips.fxtwitch.tv\/)(?:[?:=a-zA-Z0-9_-]*))/, `\n\n> ${videoEmbed.data.description} \n $1`)
+            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.video.url})`
           }
   
           // message is entirely an embed (bot msg)
