@@ -5,7 +5,7 @@
  */
 
 // discord init
-const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType } = require('discord.js')
+const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType, WebhookClient } = require('discord.js')
 const client = new Client({
   partials: [Partials.User, Partials.Channel, Partials.GuildMember, Partials.Message, Partials.Reaction],
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent]
@@ -16,6 +16,7 @@ let db
 let guildID = ''
 let smugboardID = ''
 let postChannel
+let webhook
 const messagePosted = {}
 let loading = true
 
@@ -289,29 +290,37 @@ async function manageBoard (reaction) {
 }
 
 // delete a post
-function deletePost (msg) {
-  // const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+async function deletePost (msg) {
   // if posted to channel board before
   if (messagePosted[msg.id]) {
     const editableMessageID = messagePosted[msg.id]
-    postChannel.messages.fetch(editableMessageID).then((message) => {
-      delete messagePosted[msg.id]
-      message.delete()
-        .then(msg => console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`))
-        .catch(console.error)
+    let deletableMessage
+    try {
+      if (webhook) {
+        await webhook.deleteMessage(editableMessageID)
+      } else {
+        deletableMessage = await postChannel.messages.fetch(editableMessageID)
+        await deletableMessage.delete()
+      }
+    } catch(e) {
+      console.error(`Error deleting message ${editableMessageID}\n${e}`)
+    }
+
+    delete messagePosted[msg.id]
+    console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`)
       
-      if (db)
-        db.setDeleted(message.id)
-    })
+    if (db)
+      db.setDeleted(editableMessageID)
   }
 }
 
 // ON READY
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log(`Logged in as ${client.user.username}!`)
   guildID = settings.serverID
   smugboardID = settings.channelID
-  postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+  if (settings.webhook) webhook = new WebhookClient({ url: settings.webhook })
+  postChannel = (webhook) ? webhook : client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
   // fetch existing posts
   loadIntoMemory()
 })
