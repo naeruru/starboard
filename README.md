@@ -14,6 +14,7 @@ After creating your bot and cloning the repository, the only setup that needs to
   "token": "bot_token",
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
+  "webhook": "",
   "reactionEmoji": "⭐",
   "embedEmoji": "⭐",
   "threshold": 15,
