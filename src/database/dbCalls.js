@@ -9,7 +9,7 @@ module.exports = {
             reactions: reactions,
             msgContent: msg.content,
             msgAttachment: (attachment) ? attachment.url : '',
-            date: (starPost.createdAt) ? starPost.createdAt : new Date(starPost.timestamp).toISOString()
+            date: starPost.createdAt ?? new Date(starPost.timestamp).toISOString()
         }
 
         const channel = {

@@ -265,7 +265,7 @@ async function manageBoard (reaction) {
       // set first image
       const first_image = (data.imageURLs.length) ? data.imageURLs.shift() : null
       // set message embed color
-      const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
+      const hexcolor = settings.hexcolor ?? parseInt(msg.channel.id).toString(16).substring(2, 8)
 
       // attach all embeds
       const embeds =  [
