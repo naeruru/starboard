@@ -283,14 +283,26 @@ async function manageBoard (reaction) {
       })
 
       // post embed
-      const channel = (webhook) ? webhook : postChannel
-      channel.send({ embeds: embeds }).then(starMessage => {
+      let starMessage
+      try {
+        if (webhook) {
+          starMessage = await webhook.send({
+            username: client.user.username,
+            avatarURL: client.user.avatarURL(),
+            embeds: embeds
+          })
+        } else {
+          starMessage = await postChannel.send({ embeds: embeds })
+        }
+
+        // save message id to memory
         messagePosted[msg.id] = starMessage.id
 
-        // if db
         if (db)
           db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
-      })
+      } catch (err) {
+        console.error(`error reposting msg: ${msg.id}\n${err}`)
+      }
     }
   }
 }
