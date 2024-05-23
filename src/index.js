@@ -189,13 +189,8 @@ async function buildEmbedFields(reaction) {
 async function editEmbed(reaction, editableMessageID, forceUpdate=false) {
   if (reaction.count) console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
 
-  let message
   try {
-    if (webhook) {
-      message = await postChannel.fetchMessage(editableMessageID)
-    } else {
-      message = await postChannel.messages.fetch(editableMessageID)
-    }
+    const message = await postChannel.messages.fetch(editableMessageID)
 
     // rebuild embeds
     const origEmbed = message.embeds[0]
@@ -222,8 +217,8 @@ async function editEmbed(reaction, editableMessageID, forceUpdate=false) {
     }
 
     let starMessage
-    if (webhook) {
-      starMessage = await postChannel.editMessage(message.id, { embeds: updatedEmbeds })
+    if (message.webhookId) {
+      starMessage = await webhook.editMessage(message.id, { embeds: updatedEmbeds })
     } else {
       starMessage = await message.edit({ embeds: updatedEmbeds })
     }
@@ -238,9 +233,7 @@ async function editEmbed(reaction, editableMessageID, forceUpdate=false) {
 
 // manage the message board on reaction add/remove
 async function manageBoard (reaction) {
-
   const msg = reaction.message
-  // const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
   // if message is older than set amount
   const dateDiff = (new Date()) - msg.createdAt
@@ -290,7 +283,8 @@ async function manageBoard (reaction) {
       })
 
       // post embed
-      postChannel.send({ embeds: embeds }).then(starMessage => {
+      const channel = (webhook) ? webhook : postChannel
+      channel.send({ embeds: embeds }).then(starMessage => {
         messagePosted[msg.id] = starMessage.id
 
         // if db
@@ -308,10 +302,10 @@ async function deletePost (msg) {
     const editableMessageID = messagePosted[msg.id]
     let deletableMessage
     try {
-      if (webhook) {
+      deletableMessage = await postChannel.messages.fetch(editableMessageID)
+      if (deletableMessage.webhookId) {
         await webhook.deleteMessage(editableMessageID)
       } else {
-        deletableMessage = await postChannel.messages.fetch(editableMessageID)
         await deletableMessage.delete()
       }
     } catch(e) {
@@ -331,8 +325,10 @@ client.on('ready', async () => {
   console.log(`Logged in as ${client.user.username}!`)
   guildID = settings.serverID
   smugboardID = settings.channelID
+
   if (settings.webhook) webhook = new WebhookClient({ url: settings.webhook })
-  postChannel = (webhook) ? webhook : client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+  postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+
   // fetch existing posts
   loadIntoMemory()
 })
