@@ -116,7 +116,7 @@ async function buildEmbedFields(reaction) {
   }
 
   // add msg origin info to content prop
-  const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+  const msgLink = `https://discord.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
   const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
   const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
   data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
