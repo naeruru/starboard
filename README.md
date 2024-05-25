@@ -14,14 +14,15 @@ After creating your bot and cloning the repository, the only setup that needs to
   "token": "bot_token",
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
-  "webhook": "",
   "reactionEmoji": "⭐",
   "embedEmoji": "⭐",
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
   "fetchLimit": 100,
-  "editMsgGracePeriod": 300
+  "editMsgGracePeriod": 300,
+  "webhook": "",
+  "authorAsUsername": false
 }
 ```
 
@@ -38,6 +39,7 @@ After creating your bot and cloning the repository, the only setup that needs to
 | **dateCutoff** | Integer | how old a message can be, in days, and still be tracked by the bot. if you don't want really old messages getting posted, then keep this number low. |
 | **fetchLimit** | Integer | how many messages from the starboard channel will be loaded in memory. This lets the script know what messages have already been posted. It's recommended to change this with respect to `dateCutoff` and how big your server is. Anything that isn't tracked has the possibility of getting double posted. |
 | **editMsgGracePeriod** | Integer | how long, in seconds, a message can to be edited to update its board post. disables this feature if set to null or 0. |
+| **authorAsUsername** | Boolean | Only when webhook is active. If true, sets the webhook username and avatar to the original post author. If false, it sets it to the bot. |
 
 ### Running the Project
 Use `npm install` to download dependencies. Finally, you can run the bot with `npm start`. I recommend using pm2 for continuous uptime.

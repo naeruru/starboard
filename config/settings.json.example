@@ -2,12 +2,13 @@
   "token": "bot_token",
   "serverID": "693277318496920420",
   "channelID": "461248569698208129",
-  "webhook": "",
   "reactionEmoji": "⭐",
   "embedEmoji": "⭐",
   "threshold": 15,
   "hexcolor": "00AE86",
   "dateCutoff": 3,
   "fetchLimit": 100,
-  "editMsgGracePeriod": 300
+  "editMsgGracePeriod": 300,
+  "webhook": "https://discord.com/api/webhooks/1240827868137787492/_N0uYLsTUxUG7WBhAv4BZn8tcKMdU5OcQikEp3iGHbFWBLjmEohGYjklJtjsSgh-ejcr",
+  "authorAsUsername": true
 }

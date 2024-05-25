@@ -267,11 +267,13 @@ async function manageBoard (reaction) {
       // set message embed color
       const hexcolor = settings.hexcolor ?? parseInt(msg.channel.id).toString(16).substring(2, 8)
 
+      const authorName = msg.author.globalName ?? msg.author.username
+
       // attach all embeds
       const embeds =  [
         new EmbedBuilder()
           .setURL(first_image)
-          .setAuthor({ name: msg.author.globalName ?? msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
+          .setAuthor({ name: authorName, iconURL: data.avatarURL, url: `https://discord.com/users/${msg.author.id}`})
           .setColor(hexcolor)
           .setDescription(data.content + data.contentInfo)
           .setImage(first_image)
@@ -282,17 +284,28 @@ async function manageBoard (reaction) {
         embeds.push(new EmbedBuilder().setURL(first_image).setImage(url))
       })
 
+      const payload = {
+        embeds
+      }
+
       // post embed
       let starMessage
       try {
+        // as webhook
         if (webhook) {
-          starMessage = await webhook.send({
-            username: client.user.username,
-            avatarURL: client.user.avatarURL(),
-            embeds: embeds
-          })
+          if (settings.authorAsUsername) {
+            embeds[0].setAuthor(null)
+            payload.username = authorName
+            payload.avatarURL = data.avatarURL
+          } else {
+            payload.username = client.user.username
+            payload.avatarURL = client.user.avatarURL()
+          }
+          starMessage = await webhook.send(payload)
+
+        // as bot
         } else {
-          starMessage = await postChannel.send({ embeds: embeds })
+          starMessage = await postChannel.send(payload)
         }
 
         // save message id to memory
