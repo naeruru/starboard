@@ -5,7 +5,7 @@
  */
 
 // discord init
-const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType } = require('discord.js')
+const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType, WebhookClient } = require('discord.js')
 const client = new Client({
   partials: [Partials.User, Partials.Channel, Partials.GuildMember, Partials.Message, Partials.Reaction],
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent]
@@ -16,6 +16,7 @@ let db
 let guildID = ''
 let smugboardID = ''
 let postChannel
+let webhook
 const messagePosted = {}
 let loading = true
 
@@ -102,92 +103,95 @@ async function loadIntoMemory () {
 
 // construct json object for embed fields
 async function buildEmbedFields(reaction) {
-        const msg = reaction.message
+  const msg = reaction.message
 
-        // create content data
-        const data = {
-          content: msg.content,
-          contentInfo: '',
-          avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
-          // imageURL: '',
-          imageURLs: [],
-          footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-        }
-  
-        // add msg origin info to content prop
-        const msgLink = `https://discordapp.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-        const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
-        const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-        data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
-  
-        // resolve reply message
-        if (msg.reference?.messageId) {
-          await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
-            // construct reply comment
-            let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
-            replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
-            data.content = (msg.content) ? `\n\n${data.content}`: data.content
-            data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
-          }).catch(err => {
-            console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
-          })
-        }
-  
-        // resolve any embeds and images
-        if (msg.embeds.length) {
-          const imgs = msg.embeds
-            .filter(embed => embed.thumbnail || embed.image)
-            .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
-  
-          if (imgs.length) {
-            // data.imageURL = imgs[0]
-            data.imageURLs = imgs
-  
-            // site specific gif fixes
-            data.imageURLs.forEach((url, i) => {
-              data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAe\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
-            })
-          }
+  // create content data
+  const data = {
+    content: msg.content,
+    contentInfo: '',
+    avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
+    // imageURL: '',
+    imageURLs: [],
+    footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
+  }
 
-          // twitch clip check
-          const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
-          if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
-            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
-          }
-          if (videoEmbed && videoEmbed.data.url.includes("clips.fxtwitch.tv")) {
-            data.content = data.content.replace(/((https:\/\/)(clips.fxtwitch.tv\/)(?:[?:=a-zA-Z0-9_-]*))/, `\n\n> ${videoEmbed.data.description} \n $1`)
-            data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.video.url})`
-          }
+  // add msg origin info to content prop
+  const msgLink = `https://discord.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+  const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
+  const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+  data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+
+  // resolve reply message
+  if (msg.reference?.messageId) {
+    await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
+      // construct reply comment
+      let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
+      replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
+      data.content = (msg.content) ? `\n\n${data.content}`: data.content
+      data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
+    }).catch(err => {
+      console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
+    })
+  }
+
+  // resolve any embeds and images
+  if (msg.embeds.length) {
+    const imgs = msg.embeds
+      .filter(embed => embed.thumbnail || embed.image)
+      .map(embed => (embed.thumbnail) ? embed.thumbnail.url : embed.image.url)
+
+    if (imgs.length) {
+      // data.imageURL = imgs[0]
+      data.imageURLs = imgs
+
+      // site specific gif fixes
+      data.imageURLs.forEach((url, i) => {
+        data.imageURLs[i] = data.imageURLs[i].replace(/(^https:\/\/media.tenor.com\/.*)(AAAAe\/)(.*)(\.png|\.jpg)/, "$1AAAAC/$3.gif")
+      })
+    }
+
+    // twitch clip check
+    const videoEmbed = msg.embeds.filter(embed => embed.data.type === 'video')[0]
+    if (videoEmbed && videoEmbed.data.video.url.includes("clips.twitch.tv")) {
+      data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.thumbnail.url.replace("-social-preview.jpg", ".mp4")})`
+    }
+    if (videoEmbed && videoEmbed.data.url.includes("clips.fxtwitch.tv")) {
+      data.content = data.content.replace(/((https:\/\/)(clips.fxtwitch.tv\/)(?:[?:=a-zA-Z0-9_-]*))/, `\n\n> ${videoEmbed.data.description} \n $1`)
+      data.contentInfo += `\n⬇️ [download clip](${videoEmbed.data.video.url})`
+    }
+
+    // message is entirely an embed (bot msg)
+    if (msg.content === '') {
+      const embed = msg.embeds[0]
+      if (embed.description) {
+        data.content += embed.description
+      } else if (embed.fields && embed.fields[0].value) {
+        data.content += embed.fields[0].value
+      }
+    }
+  }
+  if (msg.attachments.size) {
+    // data.imageURL = msg.attachments.first().url
+    msg.attachments.each(attachment => {
+      data.imageURLs.push(attachment.url)
+      data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`
+    })
+  }
+
+  // max length message
+  if (data.content.length > MAXLENGTH - data.contentInfo.length)
+    data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
   
-          // message is entirely an embed (bot msg)
-          if (msg.content === '') {
-            const embed = msg.embeds[0]
-            if (embed.description) {
-              data.content += embed.description
-            } else if (embed.fields && embed.fields[0].value) {
-              data.content += embed.fields[0].value
-            }
-          }
-        }
-        if (msg.attachments.size) {
-          // data.imageURL = msg.attachments.first().url
-          msg.attachments.each(attachment => {
-            data.imageURLs.push(attachment.url)
-            data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`
-          })
-        }
-  
-        // max length message
-        if (data.content.length > MAXLENGTH - data.contentInfo.length)
-          data.content = `${data.content.substring(0, MAXLENGTH - data.contentInfo.length)}...`
-        
-        return data
+  return data
 }
 
 // update embed
-function editEmbed(reaction, editableMessageID, forceUpdate=false) {
+async function editEmbed(reaction, editableMessageID, forceUpdate=false) {
   if (reaction.count) console.log(`updating count of message with ID ${editableMessageID}. reaction count: ${reaction.count}`)
-  postChannel.messages.fetch(editableMessageID).then(async message => {
+
+  try {
+    const message = await postChannel.messages.fetch(editableMessageID)
+
     // rebuild embeds
     const origEmbed = message.embeds[0]
     if (!origEmbed) throw `original embed could not be fetched`
@@ -212,22 +216,24 @@ function editEmbed(reaction, editableMessageID, forceUpdate=false) {
       updatedEmbeds = updatedEmbeds.concat(message.embeds.slice(1))
     }
 
-    message.edit({ embeds: updatedEmbeds }).then(starMessage => {
-      // if db
-      if (db)
-        db.updatePost(starMessage, reaction.message, reaction.count, starMessage.embeds[0].image)
-    })
+    let starMessage
+    if (message.webhookId) {
+      starMessage = await webhook.editMessage(message.id, { embeds: updatedEmbeds })
+    } else {
+      starMessage = await message.edit({ embeds: updatedEmbeds })
+    }
 
-  }).catch(err => {
+    if (db)
+      db.updatePost(starMessage, reaction.message, reaction.count, starMessage.embeds[0].image)
+
+  } catch (err) {
     console.error(`error updating post: ${editableMessageID}\noriginal message: ${reaction.message.id}\n${err}`)
-  })
+  }
 }
 
 // manage the message board on reaction add/remove
 async function manageBoard (reaction) {
-
   const msg = reaction.message
-  // const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
 
   // if message is older than set amount
   const dateDiff = (new Date()) - msg.createdAt
@@ -259,13 +265,15 @@ async function manageBoard (reaction) {
       // set first image
       const first_image = (data.imageURLs.length) ? data.imageURLs.shift() : null
       // set message embed color
-      const hexcolor = (settings.hexcolor) ? settings.hexcolor : parseInt(msg.channel.id).toString(16).substring(2, 8)
+      const hexcolor = settings.hexcolor ?? parseInt(msg.channel.id).toString(16).substring(2, 8)
+
+      const authorName = msg.author.globalName ?? msg.author.username
 
       // attach all embeds
       const embeds =  [
         new EmbedBuilder()
           .setURL(first_image)
-          .setAuthor({ name: msg.author.globalName ?? msg.author.username, iconURL: data.avatarURL, url: `https://discordapp.com/users/${msg.author.id}`})
+          .setAuthor({ name: authorName, iconURL: data.avatarURL, url: `https://discord.com/users/${msg.author.id}`})
           .setColor(hexcolor)
           .setDescription(data.content + data.contentInfo)
           .setImage(first_image)
@@ -276,42 +284,76 @@ async function manageBoard (reaction) {
         embeds.push(new EmbedBuilder().setURL(first_image).setImage(url))
       })
 
+      const payload = {
+        embeds
+      }
+
       // post embed
-      postChannel.send({ embeds: embeds }).then(starMessage => {
+      let starMessage
+      try {
+        // as webhook
+        if (webhook) {
+          if (settings.authorAsUsername) {
+            embeds[0].setAuthor(null)
+            payload.username = authorName
+            payload.avatarURL = data.avatarURL
+          } else {
+            payload.username = client.user.username
+            payload.avatarURL = client.user.avatarURL()
+          }
+          starMessage = await webhook.send(payload)
+
+        // as bot
+        } else {
+          starMessage = await postChannel.send(payload)
+        }
+
+        // save message id to memory
         messagePosted[msg.id] = starMessage.id
 
-        // if db
         if (db)
           db.updatePost(starMessage, msg, reaction.count, starMessage.embeds[0].image)
-      })
+      } catch (err) {
+        console.error(`error reposting msg: ${msg.id}\n${err}`)
+      }
     }
   }
 }
 
 // delete a post
-function deletePost (msg) {
-  // const postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+async function deletePost (msg) {
   // if posted to channel board before
   if (messagePosted[msg.id]) {
     const editableMessageID = messagePosted[msg.id]
-    postChannel.messages.fetch(editableMessageID).then((message) => {
-      delete messagePosted[msg.id]
-      message.delete()
-        .then(msg => console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`))
-        .catch(console.error)
+    let deletableMessage
+    try {
+      deletableMessage = await postChannel.messages.fetch(editableMessageID)
+      if (deletableMessage.webhookId) {
+        await webhook.deleteMessage(editableMessageID)
+      } else {
+        await deletableMessage.delete()
+      }
+    } catch(e) {
+      console.error(`Error deleting message ${editableMessageID}\n${e}`)
+    }
+
+    delete messagePosted[msg.id]
+    console.log(`Removed message with ID ${editableMessageID}. Reaction count reached 0.`)
       
-      if (db)
-        db.setDeleted(message.id)
-    })
+    if (db)
+      db.setDeleted(editableMessageID)
   }
 }
 
 // ON READY
-client.on('ready', () => {
+client.on('ready', async () => {
   console.log(`Logged in as ${client.user.username}!`)
   guildID = settings.serverID
   smugboardID = settings.channelID
+
+  if (settings.webhook) webhook = new WebhookClient({ url: settings.webhook })
   postChannel = client.guilds.cache.get(guildID).channels.cache.get(smugboardID)
+
   // fetch existing posts
   loadIntoMemory()
 })
