@@ -123,15 +123,31 @@ async function buildEmbedFields(reaction) {
 
   // resolve reply message
   if (msg.reference?.messageId) {
-    await msg.channel.messages.fetch(msg.reference.messageId).then(message => {
-      // construct reply comment
-      let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
-      replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
-      data.content = (msg.content) ? `\n\n${data.content}`: data.content
-      data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
-    }).catch(err => {
+    try {
+      const replyMsgChannel = await client.channels.fetch(msg.reference.channelId)
+      await replyMsgChannel.messages.fetch(msg.reference.messageId).then(message => {
+        // construct reply comment
+        if (msg.mentions.repliedUser) {
+          let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
+          replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
+          data.content = (msg.content) ? `\n\n${data.content}`: data.content
+          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
+        } else {
+          // forward message
+          const forwardMsgLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`
+          const forwardLink = (threadTypes.includes(message.channel.type)) ? `<#${message.channel.parent.id}>/<#${message.channel.id}>` : `<#${message.channel.id}>`
+          data.content = message.content
+          data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from ${forwardLink}\n`
+        }
+      })
+    } catch(err) {
       console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
-    })
+      if (err.code === 50001) {
+        // forwarded msg from server bot is not in
+        const forwardMsgLink = `https://discord.com/channels/${msg.reference.guildId}/${msg.reference.channelId}/${msg.reference.messageId}`
+        data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from *unknown source*`
+      }
+    }
   }
 
   // resolve any embeds and images
