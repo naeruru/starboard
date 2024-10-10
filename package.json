@@ -10,7 +10,7 @@
   "author": "naeruru",
   "license": "MIT",
   "dependencies": {
-    "discord.js": "^14.15.2",
+    "discord.js": "^14.16.3",
     "mariadb": "^2.5.4",
     "sequelize": "^6.3.5"
   }

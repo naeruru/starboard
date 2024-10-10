@@ -150,6 +150,16 @@ async function buildEmbedFields(reaction) {
     }
   }
 
+  // resolve poll
+  if (msg.poll) {
+    data.content += `**POLL: ${msg.poll.question.text}**`
+    msg.poll.answers.forEach(answer => {
+      if (answer.text) {
+        data.content += `\n- ${answer.emoji} ${answer.text} (${answer.voteCount})`
+      }
+    })
+  }
+
   // resolve any embeds and images
   if (msg.embeds.length) {
     const imgs = msg.embeds
