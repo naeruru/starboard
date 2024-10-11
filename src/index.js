@@ -155,7 +155,7 @@ async function buildEmbedFields(reaction) {
     data.content += `**POLL: ${msg.poll.question.text}**`
     msg.poll.answers.forEach(answer => {
       if (answer.text) {
-        data.content += `\n- ${answer.emoji} ${answer.text} (${answer.voteCount})`
+        data.content += `\n- ${answer.emoji ?? ''} ${answer.text} (${answer.voteCount})`
       }
     })
   }
