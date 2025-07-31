@@ -19,6 +19,7 @@ let postChannel
 let webhook
 const messagePosted = {}
 let loading = true
+let emoji_type
 
 const MAXLENGTH = 4000
 
@@ -44,6 +45,8 @@ function setup () {
   } else {
     console.log('Error logging in: There may be an issue with you settings.json file')
   }
+
+  emoji_type = (!!parseInt(settings.reactionEmoji) && settings.reactionEmoji > 10) ? 'id' : 'name'
 }
 
 // takes a discordjs data structure
@@ -371,6 +374,21 @@ async function deletePost (msg) {
   }
 }
 
+
+function validPost(reaction) {
+  if (loading) return false
+  // if channel is posting channel
+  if (reaction.message.channel.id == smugboardID) return false
+  // if reaction is not desired emoji
+  if (emoji_type === 'id') {
+    if (reaction.emoji.id !== settings.reactionEmoji) return false
+  } else {
+    if (reaction.emoji.name !== settings.reactionEmoji) return false
+  }
+
+  return true
+}
+
 // ON READY
 client.on('ready', async () => {
   console.log(`Logged in as ${client.user.username}!`)
@@ -386,11 +404,7 @@ client.on('ready', async () => {
 
 // ON REACTION ADD
 client.on('messageReactionAdd', (reaction) => {
-  if (loading) return
-  // if channel is posting channel
-  if (reaction.message.channel.id == smugboardID) return
-  // if reaction is not desired emoji
-  if (reaction.emoji.name !== settings.reactionEmoji) return
+  if (!validPost(reaction)) return
 
   // check if partial
   fetchStructure(reaction).then((reaction) => {
@@ -402,11 +416,7 @@ client.on('messageReactionAdd', (reaction) => {
 
 // ON REACTION REMOVE
 client.on('messageReactionRemove', (reaction) => {
-  if (loading) return
-  // if channel is posting channel
-  if (reaction.message.channel.id == smugboardID) return
-  // if reaction is not desired emoji
-  if (reaction.emoji.name !== settings.reactionEmoji) return
+  if (!validPost(reaction)) return
 
 
   // check if partial
@@ -428,7 +438,7 @@ client.on('messageReactionRemoveAll', (msg) => {
 
 // ON REACTION PURGE SINGLE
 client.on('messageReactionRemoveEmoji', (msgReaction) => {
-  if (msgReaction.emoji.name === settings.reactionEmoji)
+  if (validPost(msgReaction))
     deletePost(msgReaction.message)
 })
 

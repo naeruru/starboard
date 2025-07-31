@@ -32,7 +32,7 @@ After creating your bot and cloning the repository, the only setup that needs to
 | **serverID** | String | the ID of the server you want the bot to run in. After enabling developer mode, you can right click the server icon to get the server ID. |
 | **channelID** | String | the ID of the channel you want the starboard bot to post to. You can right click the channel name and obtain the channel ID after enabling developer mode. |
 | **webhook** | URL | (OPTIONAL) The URL of a user created webhook (Server Settings > Integrations). When a valid URL exists, the bot will post messages through the webhook instead. This options allows the bot to use any global emote on Discord. |
-| **reactionEmoji** | String | the emoji you want the bot to listen to. For default emojis, use the literal emoji. To easily obtain this, you can put a `\` infront of any emoji name like `\:star:` in discord (which would create ⭐). For custom emojis, simply put the exact name like `moon2SMUG`. |
+| **reactionEmoji** | String | the emoji you want the bot to listen to. For default emojis, use the literal emoji. To easily obtain this, you can put a `\` infront of any emoji name like `\:star:` in discord (which would create ⭐). For custom emojis, put the exact name like `moon2SMUG` or the ID like `1290347729762910219`. |
 | **embedEmoji** | String | the emoji (Or any other piece of text) displayed at the bottom of the embeds in the starboard channel. |
 | **threshhold** | Integer | the amount of reactions it takes for a message to be posted to the starboard. |
 | **hexcolor** | String | the color of the embed in hex. if null, this value is generated from an incoming message's channel ID (unique color code per channel). |
