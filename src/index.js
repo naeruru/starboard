@@ -5,11 +5,12 @@
  */
 
 // discord init
-const { Client, GatewayIntentBits, Partials, EmbedBuilder, ChannelType, WebhookClient } = require('discord.js')
+const { Client, GatewayIntentBits, Partials, AttachmentBuilder, EmbedBuilder, ChannelType, WebhookClient, ChannelFlagsBitField } = require('discord.js')
 const client = new Client({
   partials: [Partials.User, Partials.Channel, Partials.GuildMember, Partials.Message, Partials.Reaction],
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.GuildMessageReactions, GatewayIntentBits.MessageContent]
 })
+const fs = require('fs')
 
 let settings
 let db
@@ -19,7 +20,8 @@ let postChannel
 let webhook
 const messagePosted = {}
 let loading = true
-let emoji_type
+let emojiType
+let footerImage
 
 const MAXLENGTH = 4000
 
@@ -46,7 +48,12 @@ function setup () {
     console.log('Error logging in: There may be an issue with you settings.json file')
   }
 
-  emoji_type = (!!parseInt(settings.reactionEmoji) && settings.reactionEmoji > 10) ? 'id' : 'name'
+  emojiType = (!!parseInt(settings.reactionEmoji) && settings.reactionEmoji > 10) ? 'id' : 'name'
+
+  if (fs.existsSync('../config/footer.png')) {
+    console.log('got here')
+    footerImage = new AttachmentBuilder('../config/footer.png')
+  }
 }
 
 // takes a discordjs data structure
@@ -104,66 +111,7 @@ async function loadIntoMemory () {
   console.log(`\nLoaded ${Object.keys(messagePosted).length} previous posts in ${settings.reactionEmoji} channel!`)
 }
 
-// construct json object for embed fields
-async function buildEmbedFields(reaction) {
-  const msg = reaction.message
-
-  // create content data
-  const data = {
-    content: msg.content,
-    contentInfo: '',
-    avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
-    // imageURL: '',
-    imageURLs: [],
-    footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
-  }
-
-  // add msg origin info to content prop
-  const msgLink = `https://discord.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-  const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
-  const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
-  data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
-
-  // resolve reply message
-  if (msg.reference?.messageId) {
-    try {
-      const replyMsgChannel = await client.channels.fetch(msg.reference.channelId)
-      await replyMsgChannel.messages.fetch(msg.reference.messageId).then(message => {
-        // construct reply comment
-        if (msg.mentions.repliedUser) {
-          let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
-          replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
-          data.content = (msg.content) ? `\n\n${data.content}`: data.content
-          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
-        } else {
-          // forward message
-          const forwardMsgLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`
-          const forwardLink = (threadTypes.includes(message.channel.type)) ? `<#${message.channel.parent.id}>/<#${message.channel.id}>` : `<#${message.channel.id}>`
-          data.content = message.content
-          data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from ${forwardLink}\n`
-        }
-      })
-    } catch(err) {
-      console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
-      if (err.code === 50001) {
-        // forwarded msg from server bot is not in
-        const forwardMsgLink = `https://discord.com/channels/${msg.reference.guildId}/${msg.reference.channelId}/${msg.reference.messageId}`
-        data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from *unknown source*`
-      }
-    }
-  }
-
-  // resolve poll
-  if (msg.poll) {
-    data.content += `**POLL: ${msg.poll.question.text}**`
-    msg.poll.answers.forEach(answer => {
-      if (answer.text) {
-        data.content += `\n- ${answer.emoji ?? ''} ${answer.text} (${answer.voteCount})`
-      }
-    })
-  }
-
-  // resolve any embeds and images
+function getImages(msg, data, spoiler) {
   if (msg.embeds.length) {
     const imgs = msg.embeds
       .filter(embed => embed.thumbnail || embed.image)
@@ -200,12 +148,83 @@ async function buildEmbedFields(reaction) {
     }
   }
   if (msg.attachments.size) {
-    // data.imageURL = msg.attachments.first().url
     msg.attachments.each(attachment => {
       data.imageURLs.push(attachment.url)
       data.contentInfo += `\n📎 [${attachment.name}](${attachment.url})`
     })
   }
+
+  if (spoiler) data.imageURLs = []
+}
+
+// construct json object for embed fields
+async function buildEmbedFields(reaction) {
+  const msg = reaction.message
+
+  // check spoiler channel
+  const channelBitfield = new ChannelFlagsBitField(msg.channel.flags)
+  const spoilerChannel = channelBitfield.equals(2097152)
+
+  // create content data
+  const data = {
+    content: (spoilerChannel && msg.content) ? `||${msg.content}||` : msg.content,
+    contentInfo: '',
+    avatarURL: msg.author.displayAvatarURL({ dynamic: true }),
+    // imageURL: '',
+    imageURLs: [],
+    footer: `${reaction.count} ${settings.embedEmoji} (${msg.id})`
+  }
+
+  // add msg origin info to content prop
+  const msgLink = `https://discord.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
+  const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
+  const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
+  data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
+
+  // resolve reply message
+  if (msg.reference?.messageId) {
+    try {
+      const replyMsgChannel = await client.channels.fetch(msg.reference.channelId)
+      await replyMsgChannel.messages.fetch(msg.reference.messageId).then(message => {
+        // construct reply comment
+        if (msg.mentions.repliedUser) {
+          let replyContent = (!message.content && message.attachments.size) ? message.attachments.first().name : message.content.replace(/\n/g, ' ')
+          replyContent = (replyContent.length > 300) ? `${replyContent.substring(0, 300)}...` : replyContent
+          data.content = (msg.content) ? `\n\n${data.content}`: data.content
+          data.content = `> ${msg.mentions.repliedUser}: ${replyContent}${data.content}`
+        } else {
+          // forward message
+          const forwardMsgLink = `https://discord.com/channels/${message.guild.id}/${message.channel.id}/${message.id}`
+          const forwardLink = (threadTypes.includes(message.channel.type)) ? `<#${message.channel.parent.id}>/<#${message.channel.id}>` : `<#${message.channel.id}>`
+          data.content = (spoilerChannel && message.content) ? `||${message.content}||` : message.content
+          data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from ${forwardLink}`
+
+          // resolve forwarded images
+          getImages(message, data, spoilerChannel)
+        }
+      })
+    } catch(err) {
+      console.error(`error getting reply msg: ${msg.reference.messageId} (for ${msg.id})\n${err}`)
+      if (err.code === 50001) {
+        // forwarded msg from server bot is not in
+        const forwardMsgLink = `https://discord.com/channels/${msg.reference.guildId}/${msg.reference.channelId}/${msg.reference.messageId}`
+        data.contentInfo += `\n↱ [forwarded message](${forwardMsgLink}) from *unknown source*`
+      }
+    }
+  }
+
+  // resolve poll
+  if (msg.poll) {
+    data.content += `**POLL: ${msg.poll.question.text}**`
+    msg.poll.answers.forEach(answer => {
+      if (answer.text) {
+        data.content += `\n- ${answer.emoji ?? ''} ${answer.text} (${answer.voteCount})`
+      }
+    })
+  }
+
+  // resolve any embeds and images
+  getImages(msg, data, spoilerChannel)
 
   // max length message
   if (data.content.length > MAXLENGTH - data.contentInfo.length)
@@ -229,7 +248,7 @@ async function editEmbed(reaction, editableMessageID, forceUpdate=false) {
 
     let updatedEmbeds = [
       EmbedBuilder.from(origEmbed)
-        .setFooter({ text: messageFooter, iconURL: null })
+        .setFooter({ text: messageFooter, iconURL: footerImage ?? undefined })
     ]
     if (forceUpdate) {
       const data = await buildEmbedFields(reaction)
@@ -307,7 +326,7 @@ async function manageBoard (reaction) {
           .setDescription(data.content + data.contentInfo)
           .setImage(first_image)
           .setTimestamp(new Date())
-          .setFooter({ text: data.footer, iconURL: null }),
+          .setFooter({ text: data.footer, iconURL: footerImage ?? undefined }),
       ]
       data.imageURLs.forEach(url => {
         embeds.push(new EmbedBuilder().setURL(first_image).setImage(url))
@@ -380,7 +399,7 @@ function validPost(reaction) {
   // if channel is posting channel
   if (reaction.message.channel.id == smugboardID) return false
   // if reaction is not desired emoji
-  if (emoji_type === 'id') {
+  if (emojiType === 'id') {
     if (reaction.emoji.id !== settings.reactionEmoji) return false
   } else {
     if (reaction.emoji.name !== settings.reactionEmoji) return false
@@ -390,7 +409,7 @@ function validPost(reaction) {
 }
 
 // ON READY
-client.on('ready', async () => {
+client.on('clientReady', async () => {
   console.log(`Logged in as ${client.user.username}!`)
   guildID = settings.serverID
   smugboardID = settings.channelID
