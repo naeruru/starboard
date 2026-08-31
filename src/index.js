@@ -50,10 +50,10 @@ function setup () {
 
   emojiType = (!!parseInt(settings.reactionEmoji) && settings.reactionEmoji > 10) ? 'id' : 'name'
 
-  if (fs.existsSync('../config/footer.png')) {
-    console.log('got here')
-    footerImage = new AttachmentBuilder('../config/footer.png')
-  }
+  // if (fs.existsSync('../config/footer.png')) {
+  //   console.log('got here')
+  //   footerImage = new AttachmentBuilder('../config/footer.png')
+  // }
 }
 
 // takes a discordjs data structure
@@ -161,8 +161,10 @@ function getImages(msg, data, spoiler) {
 async function buildEmbedFields(reaction) {
   const msg = reaction.message
 
+  const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
+
   // check spoiler channel
-  const channelBitfield = new ChannelFlagsBitField(msg.channel.flags)
+  const channelBitfield = new ChannelFlagsBitField((threadTypes.includes(msg.channel.type)) ? msg.channel.parent.flags : msg.channel.flags)
   const spoilerChannel = channelBitfield.equals(2097152)
 
   // create content data
@@ -177,7 +179,6 @@ async function buildEmbedFields(reaction) {
 
   // add msg origin info to content prop
   const msgLink = `https://discord.com/channels/${msg.guild.id}/${msg.channel.id}/${msg.id}`
-  const threadTypes = [ChannelType.AnnouncementThread, ChannelType.PublicThread, ChannelType.PrivateThread]
   const channelLink = (threadTypes.includes(msg.channel.type)) ? `<#${msg.channel.parent.id}>/<#${msg.channel.id}>` : `<#${msg.channel.id}>`
   data.contentInfo += `\n\n→ [original message](${msgLink}) in ${channelLink}`
 
